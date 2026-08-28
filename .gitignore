@@ -12,7 +12,11 @@ dist_old_*/
 
 # App runtime data (SQLite DB + log). The app writes these at runtime;
 # the project source does not track them.
-data/
+# NOTE: anchored with a leading slash on purpose. An unanchored `data/`
+# also matches `src/data/`, which is the SOURCE data layer (repositories +
+# database bootstrap) and MUST stay tracked. Only the repository-root
+# runtime directory should be ignored here.
+/data/
 *.db
 *.db-wal
 *.db-shm
@@ -23,6 +27,7 @@ data/
 
 # Session / verification temp artifacts (Phase-4 hygiene)
 _tmp_home/
+rc_home/
 _*.txt
 
 # Virtual environments
