@@ -1,10 +1,14 @@
-# Desktop Cleaner — Python 依赖（Phase 4 / P2-5 锁版本，保障可重复构建）
+# Desktop Cleaner — Python 依赖基线（UI-1.3 Phase 1.5 收口）
 #
-# PySide6：Phase 5 真实构建环境为 Python 3.13.14（Windows 11），
-# 而 6.7.0 的 Requires-Python 上限为 <3.13，无法安装。
-# 按 P2-5 规则“以真实构建环境为准”，提升至最低 3.13 兼容版 6.8.0.2。
-# 应用仅使用 PySide6 稳定 Widget API，6.8 与 6.7 行为一致，已真实验证构建/启动。
-PySide6==6.8.0.2
+# 规则（沿用 P2-5）：以真实构建环境为准，Declared == Actual == Tested == Build Tested。
+# 本次收口前存在漂移：PySide6 声明 6.8.0.2 / 实际 6.11.2；
+#                       PyInstaller 声明 6.11.1 / 实际 6.22.2。
+# 现统一对齐到真实环境版本，详见 docs/DEPENDENCY_BASELINE.md。
+#
+# PySide6：真实构建环境为 Python 3.13.14（Windows 11），6.11.2 为已验证可安装、
+# 已真实验证构建/启动/GUI 的版本。应用仅使用 PySide6 稳定 Widget API。
+PySide6==6.11.2
 
-# PyInstaller：已在真实构建环境（Windows 11 / Python 3.13.14）实测验证 -> PASS（P2-5）。
-pyinstaller==6.11.1
+# PyInstaller：已在真实构建环境（Windows 11 / Python 3.13.14 / PySide6 6.11.2）
+# 实测验证构建与启动 -> PASS（UI-1.3 Phase 1.5）。
+pyinstaller==6.22.2
