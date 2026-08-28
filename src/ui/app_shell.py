@@ -52,7 +52,8 @@ class AppShell(QWidget):
         self._pages: dict[str, QWidget] = {}
         self._build()
         ThemeManager.instance().on_changed(self._on_theme)
-        self._route("home")
+        # UI-1.3 Phase 1.5: default landing route is 整理 (Product Home).
+        self._route("organize")
         if should_show_welcome():
             WelcomeDialog(self).exec()
 
@@ -109,7 +110,7 @@ class AppShell(QWidget):
         lay = QHBoxLayout(bar)
         lay.setContentsMargins(28, 16, 28, 16)
         lay.setSpacing(12)
-        self._title = QLabel("首页")
+        self._title = QLabel("整理")
         self._title.setObjectName("page-title")
         lay.addWidget(self._title)
         lay.addStretch(1)

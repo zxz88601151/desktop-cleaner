@@ -213,9 +213,8 @@ class OrganizePage(QWidget):
         restore_btn.setObjectName("undo-cta")
         restore_btn.setMinimumHeight(44)
         restore_btn.clicked.connect(self._undo_this)
-        home_btn = QPushButton("返回首页")
-        home_btn.setObjectName("primary")
-        home_btn.clicked.connect(lambda: self.navigate.emit("home"))
+        # UI-1.3 Phase 1.5: "返回首页" removed — 整理 IS the Product Home, and
+        # "再整理一次" already returns to the config stage. No home to return to.
         hist_btn = QPushButton("查看历史")
         hist_btn.setObjectName("ghost")
         hist_btn.clicked.connect(lambda: self.navigate.emit("history"))
@@ -223,7 +222,6 @@ class OrganizePage(QWidget):
         again_btn.setObjectName("tertiary")
         again_btn.clicked.connect(self._reset_to_config)
         btn_row.addWidget(restore_btn)
-        btn_row.addWidget(home_btn)
         btn_row.addWidget(hist_btn)
         btn_row.addWidget(again_btn)
         dv.addLayout(btn_row)
@@ -545,7 +543,9 @@ class OrganizePage(QWidget):
             self._status.setText(f"已还原 {result.moved} 个文件")
             QMessageBox.information(self, "还原完成", f"已还原 {result.moved} 个文件到原位置。")
         self._last_hid = None
-        self.navigate.emit("home")
+        # UI-1.3 Phase 1.5: return to the organize (Product Home) config stage
+        # instead of the removed standalone home page.
+        self._reset_to_config()
 
     # ----------------------------- reset ---------------------------------- #
     def _reset_to_config(self):

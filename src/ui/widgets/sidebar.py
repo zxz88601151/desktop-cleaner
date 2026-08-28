@@ -1,8 +1,12 @@
-"""Sidebar widget for the Premium App Shell (UI-1.3 Phase 1).
+"""Sidebar widget for the Premium App Shell (UI-1.3 Phase 1 + Phase 1.5).
 
-240px navigation rail: brand logo, primary menu (首页 / 整理 / 整理历史 /
-设置), a thin divider, and a bottom "关于" entry. Emits ``navigate(page_id)``
+240px navigation rail: brand logo, primary menu (整理 / 整理历史 / 设置),
+a thin divider, and a bottom "关于" entry. Emits ``navigate(page_id)``
 so the ``AppShell`` can route without the sidebar knowing page internals.
+
+UI-1.3 Phase 1.5: the standalone "首页" entry is removed — the 整理 page now
+acts as the Product Home and is the default landing route. Navigation is closed
+to exactly four entries: 整理 / 历史 / 设置 / 关于.
 
 All icons are drawn from :mod:`ui.icons` (line icons) — no emoji.
 """
@@ -27,8 +31,9 @@ from ui.theme_manager import ThemeManager
 # (an immutable test asserts its existence), it is simply no longer reachable
 # from the sidebar.
 # UI-1.3: "更多工具" / Tools removed from product UI (Decision 02).
+# UI-1.3 Phase 1.5: "首页" removed from the nav — 整理 is the Product Home and
+# the default route. Navigation is closed to 整理 / 历史 / 设置 (+ bottom 关于).
 _NAV = [
-    ("home", "home", "首页"),
     ("organize", "sort", "整理"),
     ("history", "history", "整理历史"),
     ("settings", "settings", "设置"),
