@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from core import execute_undo
 from data import history_repo, operation_repo
+from ui.icons import color, pixmap
 from utils.logger import get_logger
 
 _log = get_logger("undo")
@@ -100,9 +101,10 @@ class ConfirmUndoDialog(QDialog):
         lay.setContentsMargins(24, 24, 24, 20)
         lay.setSpacing(14)
 
-        icon = QLabel("♻️")
+        icon = QLabel()
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon.setStyleSheet("font-size:34px;")
+        icon.setFixedSize(34, 34)
+        icon.setPixmap(pixmap("undo", color("accent"), 34))
         lay.addWidget(icon)
 
         title = QLabel("撤销本次整理？")

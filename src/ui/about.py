@@ -10,14 +10,15 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ui.icons import color, pixmap
 from version import APP_NAME, APP_NAME_ZH, AUTHOR, COPYRIGHT_TEXT, TAGLINE, __version__
 
 _FEATURES = [
-    "📂 一键整理桌面 / 下载等杂乱文件夹",
-    "🗂️ 按类型或日期自动分类归拢",
-    "👀 整理前生成模拟报告，确认后才执行",
-    "↩️ 每次整理均可一键撤销还原",
-    "🔒 完全本地运行，文件不上传",
+    ("folder", "一键整理桌面 / 下载等杂乱文件夹"),
+    ("sort", "按类型或日期自动分类归拢"),
+    ("eye", "整理前生成模拟报告，确认后才执行"),
+    ("undo", "每次整理均可一键撤销还原"),
+    ("lock", "完全本地运行，文件不上传"),
 ]
 
 
@@ -48,12 +49,19 @@ class AboutDialog(QDialog):
         layout.addWidget(self._separator())
 
         feat = QVBoxLayout()
-        feat.setSpacing(8)
-        for f in _FEATURES:
-            lbl = QLabel(f)
-            lbl.setObjectName("about-feature")
-            lbl.setWordWrap(True)
-            feat.addWidget(lbl)
+        feat.setSpacing(10)
+        for icon_name, text in _FEATURES:
+            row = QHBoxLayout()
+            row.setSpacing(10)
+            ic = QLabel()
+            ic.setFixedSize(20, 20)
+            ic.setPixmap(pixmap(icon_name, color("text_secondary"), 20))
+            tx = QLabel(text)
+            tx.setObjectName("about-feature")
+            tx.setWordWrap(True)
+            row.addWidget(ic)
+            row.addWidget(tx, 1)
+            feat.addLayout(row)
         layout.addLayout(feat, 1)
 
         author = QLabel(COPYRIGHT_TEXT)

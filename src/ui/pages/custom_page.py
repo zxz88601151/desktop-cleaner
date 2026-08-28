@@ -21,29 +21,31 @@ from PySide6.QtWidgets import (
 )
 
 from data import settings_repo
+from ui.icons import color, pixmap
 from ui.theme_manager import ThemeManager
 from ui.widgets.controls import ToggleSwitch
 from PySide6.QtCore import Qt
 
 _PLANS = [
-    ("type", "🗂️", "按类型整理", "图片 / 文档 / 视频 / 音频 … 自动归类到对应文件夹"),
-    ("date", "📅", "按日期整理", "按修改月份归入 2026-08 / 2026-09 等文件夹"),
+    ("type", "sort", "按类型整理", "图片 / 文档 / 视频 / 音频 … 自动归类到对应文件夹"),
+    ("date", "calendar", "按日期整理", "按修改月份归入 2026-08 / 2026-09 等文件夹"),
 ]
 
 
 class PlanCard(QFrame):
     clicked = Signal(str)
 
-    def __init__(self, value, emoji, name, desc, parent=None):
+    def __init__(self, value, icon_name, name, desc, parent=None):
         super().__init__(parent)
         self._value = value
         self.setObjectName("plan-card")
         self.setProperty("active", "false")
         lay = QHBoxLayout(self)
         lay.setSpacing(14)
-        em = QLabel(emoji)
+        em = QLabel()
         em.setObjectName("plan-emoji")
-        em.setFixedWidth(40)
+        em.setFixedSize(28, 28)
+        em.setPixmap(pixmap(icon_name, color("text_secondary"), 28))
         col = QVBoxLayout()
         col.setSpacing(4)
         nm = QLabel(name)
@@ -53,7 +55,7 @@ class PlanCard(QFrame):
         ds.setWordWrap(True)
         col.addWidget(nm)
         col.addWidget(ds)
-        badge = QLabel("✓ 已选")
+        badge = QLabel("已选")
         badge.setObjectName("badge")
         badge.setVisible(False)
         lay.addWidget(em)
@@ -87,7 +89,7 @@ class CustomPage(QWidget):
 
         title = QLabel("整理方案")
         title.setObjectName("page-title")
-        sub = QLabel("选择一种整理策略，让数字空间焕然一新。")
+        sub = QLabel("选择一种整理策略，开始整理。")
         sub.setObjectName("page-sub")
         root.addWidget(title)
         root.addWidget(sub)

@@ -29,11 +29,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from core import category_emoji, plan, scan, summarize_plan, move_items
+from core import plan, scan, summarize_plan, move_items
 from core.organizer import OrganizeResult
 from core.rules import DEFAULT_RULES, category_display
 from core.scanner import ScanResult
 from data import history_repo, operation_repo, settings_repo
+from ui.icons import category_pixmap, color, pixmap
 from ui.preview_report import PreviewReportDialog
 from ui.state.worker import Worker
 from ui.theme_manager import ThemeManager
@@ -70,7 +71,7 @@ class OrganizePage(QWidget):
         root.setContentsMargins(28, 24, 28, 24)
         root.setSpacing(18)
 
-        self._title = QLabel("智能整理")
+        self._title = QLabel("整理")
         self._title.setObjectName("page-title")
         self._sub = QLabel("扫描 · 分类 · 整理 · 可撤销 — 文件只移动、不删除")
         self._sub.setObjectName("page-sub")
@@ -184,8 +185,10 @@ class OrganizePage(QWidget):
         dv.setSpacing(12)
         dv.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self._done_emoji = QLabel("✅")
+        self._done_emoji = QLabel()
         self._done_emoji.setObjectName("done-ico")
+        self._done_emoji.setFixedSize(46, 46)
+        self._done_emoji.setPixmap(pixmap("check", color("success"), 46))
         self._done_emoji.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._done_title = QLabel("整理完成")
         self._done_title.setObjectName("result-title")
@@ -206,7 +209,7 @@ class OrganizePage(QWidget):
         btn_row = QHBoxLayout()
         btn_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
         btn_row.setSpacing(12)
-        restore_btn = QPushButton("♻️ 一键还原本次整理")
+        restore_btn = QPushButton("一键还原本次整理")
         restore_btn.setObjectName("undo-cta")
         restore_btn.setMinimumHeight(44)
         restore_btn.clicked.connect(self._undo_this)
@@ -340,7 +343,6 @@ class OrganizePage(QWidget):
         cats = sorted(result.by_category.items(), key=lambda kv: kv[1], reverse=True)
         max_count = max((c for _, c in cats), default=1) or 1
         for label, count in cats:
-            emoji = category_emoji(label)
             size = human_size(result.by_category_size.get(label, 0))
             row = QFrame()
             row.setObjectName("cat-row")
@@ -349,8 +351,10 @@ class OrganizePage(QWidget):
             rv.setSpacing(8)
             top = QHBoxLayout()
             top.setSpacing(10)
-            ic = QLabel(emoji)
+            ic = QLabel()
             ic.setObjectName("cat-emoji")
+            ic.setFixedSize(24, 24)
+            ic.setPixmap(category_pixmap(label, color("text_secondary"), 24))
             nm = QLabel(label)
             nm.setObjectName("cat-name")
             cnt = QLabel(f"{count} 个 · {size}")
@@ -477,7 +481,7 @@ class OrganizePage(QWidget):
             counts[it.category] = counts.get(it.category, 0) + 1
         if counts:
             parts = [
-                f"{category_emoji(lbl)} {lbl} {n}"
+                f"{lbl}：{n}"
                 for lbl, n in sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
             ]
             self._done_cats.setText(" · ".join(parts))

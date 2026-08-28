@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from core import category_emoji
+from ui.icons import category_icon
 from utils import human_size
 
 MAX_SAMPLES = 500
@@ -79,8 +79,9 @@ class PreviewReportDialog(QDialog):
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         for r, c in enumerate(cats):
-            emoji = c.get("emoji", category_emoji(c["label"]))
-            table.setItem(r, 0, QTableWidgetItem(f"{emoji} {c['label']}"))
+            item = QTableWidgetItem(c["label"])
+            item.setIcon(category_icon(c["label"]))
+            table.setItem(r, 0, item)
             table.setItem(r, 1, QTableWidgetItem(c["target"]))
             table.setItem(r, 2, QTableWidgetItem(str(c["count"])))
             table.setItem(r, 3, QTableWidgetItem(human_size(c["size"])))

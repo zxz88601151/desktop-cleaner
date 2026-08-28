@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QFrame,
-    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QVBoxLayout,
@@ -11,19 +10,21 @@ from PySide6.QtWidgets import (
 )
 
 from data import history_repo
-from ui.theme_manager import ThemeManager
+from ui.icons import color, pixmap
 
 
 class StatCard(QFrame):
-    """A single rounded, shadowed summary card."""
+    """A single flat summary card (no shadow — hierarchy via surface + border)."""
 
-    def __init__(self, emoji: str, label: str, parent: QWidget | None = None):
+    def __init__(self, icon_name: str, label: str, parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("card")
         self.setMinimumHeight(96)
 
-        icon = QLabel(emoji)
+        icon = QLabel()
         icon.setObjectName("stat-icon")
+        icon.setFixedSize(24, 24)
+        icon.setPixmap(pixmap(icon_name, color("text_secondary"), 24))
         self._value = QLabel("—")
         self._value.setObjectName("stat-value")
         self._label = QLabel(label)
@@ -36,20 +37,8 @@ class StatCard(QFrame):
         lay.addWidget(self._value)
         lay.addWidget(self._label)
 
-        self._shadow = QGraphicsDropShadowEffect(self)
-        self._apply_shadow()
-
     def set_value(self, text: str) -> None:
         self._value.setText(text)
-
-    def _apply_shadow(self) -> None:
-        self._shadow.setBlurRadius(16)
-        self._shadow.setOffset(0, 3)
-        self._shadow.setColor(ThemeManager.instance().shadow_color())
-        self.setGraphicsEffect(self._shadow)
-
-    def refresh_shadow(self) -> None:
-        self._shadow.setColor(ThemeManager.instance().shadow_color())
 
 
 class DashboardWidget(QWidget):
@@ -58,9 +47,9 @@ class DashboardWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._cards = {
-            "total": StatCard("📁", "累计整理文件"),
-            "runs": StatCard("🔄", "整理次数"),
-            "last": StatCard("🕒", "最近整理"),
+            "total": StatCard("document", "累计整理文件"),
+            "runs": StatCard("refresh", "整理次数"),
+            "last": StatCard("clock", "最近整理"),
         }
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -76,7 +65,3 @@ class DashboardWidget(QWidget):
         self._cards["runs"].set_value(f"{stats['runs']:,}")
         last = stats["last_time"]
         self._cards["last"].set_value(last[:10] if last else "—")
-
-    def refresh_shadows(self) -> None:
-        for card in self._cards.values():
-            card.refresh_shadow()

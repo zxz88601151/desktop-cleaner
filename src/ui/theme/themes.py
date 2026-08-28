@@ -24,10 +24,10 @@ LIGHT = {
     "text": "#0F172A",
     "text_secondary": "#475569",
     "text_muted": "#94A3B8",
-    "accent": "#4F46E5",
-    "accent_hover": "#4338CA",
-    "accent_pressed": "#3730A3",
-    "accent_soft": "#EEF2FF",
+    "accent": "#2B6CB0",
+    "accent_hover": "#245A94",
+    "accent_pressed": "#1E4A7A",
+    "accent_soft": "#EAF2FB",
     "on_accent": "#FFFFFF",
     "danger": "#E11D48",
     "danger_hover": "#BE123C",
@@ -38,10 +38,10 @@ LIGHT = {
     "log_text": "#CBD5E1",
     "separator": "#E6EAF2",
     "shadow": "rgba(15, 23, 42, 0.10)",
-    "shadow_rgba": (15, 23, 42, 46),  # used for QGraphicsDropShadowEffect
-    "radius": "14px",
-    "radius_sm": "10px",
-    "radius_xs": "8px",
+    "shadow_rgba": (15, 23, 42, 46),  # dialog / floating layer only
+    "radius": "8px",
+    "radius_sm": "6px",
+    "radius_xs": "4px",
 }
 
 DARK = {
@@ -55,10 +55,10 @@ DARK = {
     "text": "#E8EDF6",
     "text_secondary": "#AEB9CC",
     "text_muted": "#7A8699",
-    "accent": "#818CF8",
-    "accent_hover": "#A5B4FC",
-    "accent_pressed": "#6366F1",
-    "accent_soft": "#272058",
+    "accent": "#5AA0E0",
+    "accent_hover": "#6FB0E8",
+    "accent_pressed": "#4A90D5",
+    "accent_soft": "#16324F",
     "on_accent": "#0B1120",
     "danger": "#FB7185",
     "danger_hover": "#F43F5E",
@@ -70,9 +70,9 @@ DARK = {
     "separator": "#28324A",
     "shadow": "rgba(0, 0, 0, 0.45)",
     "shadow_rgba": (0, 0, 0, 110),
-    "radius": "14px",
-    "radius_sm": "10px",
-    "radius_xs": "8px",
+    "radius": "8px",
+    "radius_sm": "6px",
+    "radius_xs": "4px",
 }
 
 THEMES = {"light": LIGHT, "dark": DARK}
@@ -370,7 +370,9 @@ QDialog {{
 
 /* ---- app shell ---- */
 #sidebar {{ background: {surface}; border-right: 1px solid {border}; }}
-#brand-mark {{ background: {accent}; border-radius: 12px; }}
+#nav-divider {{ background: {border}; max-height: 1px; margin: 4px 12px; }}
+#nav-icon {{ background: transparent; }}
+#brand-mark {{ background: {accent}; border-radius: 8px; }}
 #sidebar-logo {{ font-size: 16px; font-weight: 700; color: {text}; }}
 #sidebar-logo-sub {{ font-size: 11px; color: {text_muted}; font-weight: 500; }}
 #nav-item {{
@@ -482,7 +484,7 @@ QDialog {{
 #toggle-hint {{ font-size: 12px; color: {text_muted}; }}
 
 /* ---- one-click undo ---- */
-#undo-cta {{ background: {accent_soft}; color: {accent}; border: 1px solid {accent}; border-radius: 14px; font-weight: 650; }}
+#undo-cta {{ background: {accent_soft}; color: {accent}; border: 1px solid {accent}; border-radius: 8px; font-weight: 650; }}
 #undo-cta:hover {{ background: {accent}; color: {on_accent}; }}
 #dialog-title {{ font-size: 20px; font-weight: 760; color: {text}; }}
 #dialog-body {{ font-size: 14px; color: {text_secondary}; line-height: 1.6; }}

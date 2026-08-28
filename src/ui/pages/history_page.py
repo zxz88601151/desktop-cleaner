@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from core.organizer import OrganizeResult
 from data import history_repo, operation_repo
+from ui.icons import color, pixmap
 from ui.state.worker import Worker
 from ui.undo import ConfirmUndoDialog, run_undo
 
@@ -67,9 +68,12 @@ class HistoryRow(QFrame):
         lay.setContentsMargins(4, 4, 4, 4)
         lay.setSpacing(12)
 
-        icon = QLabel("✨" if rec["mode"] == "type" else "📅")
-        icon.setStyleSheet("font-size:22px;")
-        icon.setFixedWidth(28)
+        icon = QLabel()
+        icon.setObjectName("tl-ico")
+        icon.setFixedSize(22, 22)
+        icon.setPixmap(
+            pixmap("folder" if rec["mode"] == "type" else "calendar", color("text_secondary"), 22)
+        )
 
         col = QVBoxLayout()
         col.setSpacing(2)
@@ -78,7 +82,7 @@ class HistoryRow(QFrame):
         mode_text = "按类型整理" if rec["mode"] == "type" else "按日期整理"
         sub = QLabel(f"{mode_text}  ·  整理 {rec['organized_files']} 个文件")
         sub.setObjectName("tl-sub")
-        src = QLabel(f"📁 {rec['source_path']}")
+        src = QLabel(rec["source_path"])
         src.setObjectName("tl-sub")
         src.setWordWrap(True)
         col.addWidget(title)
@@ -144,7 +148,7 @@ class HistoryPage(QWidget):
         self._scroll.setWidget(self._list)
         root.addWidget(self._scroll, 1)
 
-        self._empty = QLabel("还没有整理记录。去「智能整理」整理一次吧。")
+        self._empty = QLabel("还没有整理记录。去「整理」整理一次吧。")
         self._empty.setObjectName("page-sub")
         self._empty.setWordWrap(True)
 

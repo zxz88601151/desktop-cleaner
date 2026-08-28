@@ -7,7 +7,7 @@ the active page so each page can refresh itself from the business layer.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QSize, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -22,12 +22,12 @@ from data import settings_repo
 from update.manager import UpdateManager
 from update.update_dialog import UpdateDialog
 from ui.about import AboutDialog
+from ui.icons import color, icon
 from ui.pages.custom_page import CustomPage
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.history_page import HistoryPage
 from ui.pages.organize_page import OrganizePage
 from ui.pages.settings_page import SettingsPage
-from ui.pages.tools_page import ToolsPage
 from ui.theme_manager import ThemeManager
 from ui.welcome import WelcomeDialog, should_show_welcome
 from ui.widgets.sidebar import Sidebar
@@ -35,10 +35,9 @@ from version import __version__
 
 _TITLES = {
     "home": "首页",
-    "organize": "智能整理",
+    "organize": "整理",
     "custom": "整理方案",
     "history": "整理历史",
-    "tools": "更多工具",
     "settings": "设置",
 }
 
@@ -88,7 +87,6 @@ class AppShell(QWidget):
             "organize": OrganizePage(),
             "custom": CustomPage(),
             "history": HistoryPage(),
-            "tools": ToolsPage(),
             "settings": SettingsPage(),
         }
         for page in self._pages.values():
@@ -131,6 +129,10 @@ class AppShell(QWidget):
 
     # ----------------------------- routing -------------------------------- #
     def _route(self, pid: str):
+        # "about" is a modal dialog, not a stacked page.
+        if pid == "about":
+            AboutDialog(self).exec()
+            return
         page = self._pages.get(pid)
         if page is None:
             return
@@ -152,7 +154,9 @@ class AppShell(QWidget):
 
     # ----------------------------- theme ---------------------------------- #
     def _update_theme_btn(self):
-        self.theme_btn.setText("🌙" if ThemeManager.instance().is_dark else "☀️")
+        dark = ThemeManager.instance().is_dark
+        self.theme_btn.setIcon(icon("moon" if dark else "sun", color("text_secondary"), 18))
+        self.theme_btn.setIconSize(QSize(18, 18))
 
     def _on_theme(self):
         self._update_theme_btn()

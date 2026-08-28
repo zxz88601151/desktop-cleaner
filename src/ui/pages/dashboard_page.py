@@ -153,7 +153,7 @@ class DashboardPage(QWidget):
         types.setObjectName("page-sub")
         hv.addWidget(types)
 
-        self._undo_btn = QPushButton("♻️ 一键还原最近一次整理")
+        self._undo_btn = QPushButton("一键还原最近一次整理")
         self._undo_btn.setObjectName("undo-cta")
         self._undo_btn.setMinimumHeight(46)
         self._undo_btn.setVisible(False)
@@ -165,15 +165,6 @@ class DashboardPage(QWidget):
         # --- summary stat cards --- #
         self._stats = DashboardWidget()
         root.addWidget(self._stats)
-
-        # UI-2.0: one lightweight entry to the future-tools page. Deliberately
-        # Tertiary — it must never compete with the 选择文件夹 / 开始扫描 CTA,
-        # which stays the first focus of the home page.
-        more = QPushButton("发现更多工具 →")
-        more.setObjectName("tertiary")
-        more.setMinimumHeight(38)
-        more.clicked.connect(lambda: self.navigate.emit("tools"))
-        root.addWidget(more, 0, HC)
         root.addStretch(1)
 
     def on_enter(self):
@@ -236,13 +227,13 @@ class DashboardPage(QWidget):
     def _on_undo_finished(self, payload: dict):
         result = payload["result"]
         self._undo_btn.setDisabled(False)
-        self._undo_btn.setText("♻️ 一键还原最近一次整理")
+        self._undo_btn.setText("一键还原最近一次整理")
         QMessageBox.information(self, "还原完成", f"已还原 {result.moved} 个文件到原位置。")
         self.refresh()
 
     def _on_undo_error(self, msg: str):
         self._undo_btn.setDisabled(False)
-        self._undo_btn.setText("♻️ 一键还原最近一次整理")
+        self._undo_btn.setText("一键还原最近一次整理")
         QMessageBox.critical(self, "错误", msg or "操作未完成，请重试。")
 
     def _on_theme(self):
