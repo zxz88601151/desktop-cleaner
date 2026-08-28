@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "product": "DesktopCleaner",
+  "latest_version": "1.1.0",
+  "minimum_supported_version": "1.1.0",
+  "release_channel": "stable",
+  "download_url": "https://github.com/zxz88601151/desktop-cleaner/releases/latest",
+  "sha256": "",
+  "release_notes": [
+    "Desktop Cleaner 首个公开版本：一键整理桌面 / 下载等杂乱文件夹，按类型或日期自动分类，整理前预览、整理后可一键撤销。"
+  ],
+  "published_at": "2026-08-28"
+}

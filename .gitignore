@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller build artifacts
+build/
+build_old_*/
+dist/
+dist_old_*/
+*.spec.bak
+
+# App runtime data (SQLite DB + log). The app writes these at runtime;
+# the project source does not track them.
+data/
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Pytest cache
+.pytest_cache/
+
+# Session / verification temp artifacts (Phase-4 hygiene)
+_tmp_home/
+_*.txt
+
+# Virtual environments
+venv/
+.venv/
