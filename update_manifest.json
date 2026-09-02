@@ -4,8 +4,8 @@
   "latest_version": "1.1.0",
   "minimum_supported_version": "1.1.0",
   "release_channel": "stable",
-  "download_url": "https://github.com/zxz88601151/desktop-cleaner/releases/latest",
-  "sha256": "",
+  "download_url": "http://192.168.3.200:3000/zxzjxx/desktop-cleaner/releases/latest",
+  "sha256": "dacdb0e9caa5218de6e43f907b2a66a335b9d063da2679370f7f308e27297c59",
   "release_notes": [
     "Desktop Cleaner 首个公开版本：一键整理桌面 / 下载等杂乱文件夹，按类型或日期自动分类，整理前预览、整理后可一键撤销。"
   ],

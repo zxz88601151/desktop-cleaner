@@ -27,6 +27,24 @@ DB_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DB_DIR / "desktop_cleaner.db"
 
 
+def configure(home) -> None:
+    """Explicitly point the DB (and log) at ``<home>/data`` (P1-2 test isolation).
+
+    Overrides the module-level ``DB_DIR`` / ``DB_PATH`` so the current process
+    uses the given home. Production never calls this; the module defaults
+    (env ``DESKTOP_CLEANER_HOME`` / ``%APPDATA%`` / project root) are unchanged
+    when ``configure()`` is not called, so default-app behaviour is preserved.
+
+    ``data_dir()`` / ``get_connection()`` / ``logger`` read the module globals
+    at call time, so no stale state is kept after reconfiguration.
+    """
+    global DB_DIR, DB_PATH
+    base = Path(home)
+    DB_DIR = base / "data"
+    DB_DIR.mkdir(parents=True, exist_ok=True)
+    DB_PATH = DB_DIR / "desktop_cleaner.db"
+
+
 def data_dir() -> Path:
     """The application's own data directory (holds ``desktop_cleaner.db``).
 
