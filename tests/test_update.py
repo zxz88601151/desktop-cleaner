@@ -39,6 +39,10 @@ from update.decision import (  # noqa: E402
 )
 from update.integrity import sha256_bytes, verify_sha256  # noqa: E402
 from update.checker import fetch_manifest  # noqa: E402
+from update.constants import (  # noqa: E402
+    is_allowed_download_url,
+    validate_manifest_basics,
+)
 
 
 def _assert(cond, msg):
@@ -286,11 +290,58 @@ def test_manager():
     mgr_mod.fetch_manifest = real_fetch
 
 
+# --------------------------------------------------------------------------- #
+# Download URL security (Phase E.3)
+# --------------------------------------------------------------------------- #
+def test_download_url_security():
+    print("[download_url_security]")
+    ok = "https://update.ycqinnan.cn/releases/DesktopCleaner-1.1.1.exe"
+    _assert(is_allowed_download_url(ok), "allowlisted HTTPS URL accepted")
+    _assert(
+        is_allowed_download_url("https://update.ycqinnan.cn/update/latest.json"),
+        "allowlisted HTTPS manifest URL accepted",
+    )
+    # non-HTTPS scheme
+    _assert(not is_allowed_download_url("http://update.ycqinnan.cn/releases/x.exe"), "http rejected")
+    _assert(not is_allowed_download_url("file:///c:/x.exe"), "file:// rejected")
+    # host not allowlisted (arbitrary public domain)
+    _assert(not is_allowed_download_url("https://example.com/DesktopCleaner.exe"), "foreign host rejected")
+    # internal / LAN hosts
+    _assert(not is_allowed_download_url("http://192.168.3.200:3000/zxzjxx/x.exe"), "LAN http rejected")
+    _assert(not is_allowed_download_url("https://192.168.3.200/x.exe"), "LAN https rejected")
+    _assert(not is_allowed_download_url("https://localhost/x.exe"), "localhost rejected")
+    _assert(not is_allowed_download_url("https://127.0.0.1/x.exe"), "127.0.0.1 rejected")
+    _assert(not is_allowed_download_url("https://10.0.0.5/x.exe"), "10.x rejected")
+    _assert(not is_allowed_download_url("https://172.16.0.5/x.exe"), "172.16 rejected")
+    # port / userinfo / malformed
+    _assert(not is_allowed_download_url("https://update.ycqinnan.cn:8443/x.exe"), "non-443 port rejected")
+    _assert(not is_allowed_download_url("https://user@update.ycqinnan.cn/x.exe"), "userinfo rejected")
+    _assert(not is_allowed_download_url("not a url"), "non-URL rejected")
+    _assert(not is_allowed_download_url(""), "empty rejected")
+    _assert(not is_allowed_download_url(None), "None rejected")
+
+
+def test_manifest_basics():
+    print("[manifest_basics]")
+    ok = {"product": "DesktopCleaner", "latest_version": "1.1.1", "download_url": "https://update.ycqinnan.cn/x.exe"}
+    _assert(validate_manifest_basics(ok) is None, "valid manifest accepted")
+    _assert(validate_manifest_basics({"product": "DesktopCleaner", "latest_version": "1.1.1"}) is None, "no download_url still valid at parse level")
+    _assert(validate_manifest_basics({"latest_version": "1.1.1"}) is not None, "missing product rejected")
+    _assert(validate_manifest_basics({"product": "Other", "latest_version": "1.1.1"}) is not None, "wrong product rejected")
+    _assert(validate_manifest_basics({"product": "DesktopCleaner"}) is not None, "missing latest_version rejected")
+    _assert(validate_manifest_basics({"product": "DesktopCleaner", "latest_version": ""}) is not None, "empty latest_version rejected")
+    _assert(validate_manifest_basics({"product": "DesktopCleaner", "latest_version": "abc"}) is not None, "non-semver latest_version rejected")
+    _assert(validate_manifest_basics(None) is not None, "None rejected")
+    _assert(validate_manifest_basics("not a dict") is not None, "non-dict rejected")
+
+
 if __name__ == "__main__":
     test_version()
     test_manifest()
     test_checker()
     test_integrity()
     test_decision()
+    test_download_url_security()
+    test_manifest_basics()
     test_manager()
     print("\nALL AR-2 UPDATE TESTS PASSED (pure + manager, no real network)")

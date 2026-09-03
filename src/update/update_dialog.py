@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from .constants import DOWNLOAD_PAGE_URL
+from .constants import is_allowed_download_url
 from .version import is_older_than
 
 
@@ -32,7 +32,10 @@ class UpdateDialog(QDialog):
         self.setObjectName("update-dialog")
         self.setMinimumWidth(440)
         self.setWindowTitle("发现新版本")
-        self._url = manifest.get("download_url") or DOWNLOAD_PAGE_URL
+        # Phase E.3: never open a manifest-supplied URL that did not pass the
+        # HTTPS + host allowlist check (no arbitrary / internal / http URL).
+        self._url = manifest.get("download_url") or ""
+        self._valid = is_allowed_download_url(self._url)
         self._forced = bool(
             manifest.get("minimum_supported_version")
             and is_older_than(manifest["minimum_supported_version"], current_version)
@@ -71,11 +74,18 @@ class UpdateDialog(QDialog):
             later.setObjectName("ghost")
             later.clicked.connect(self.reject)
             row.addWidget(later)
-        view = QPushButton("立即查看")
-        view.setObjectName("primary")
-        view.setDefault(True)
-        view.clicked.connect(self._open)
-        row.addWidget(view)
+        if self._valid:
+            view = QPushButton("立即查看")
+            view.setObjectName("primary")
+            view.setDefault(True)
+            view.clicked.connect(self._open)
+            row.addWidget(view)
+        else:
+            # No safe download URL: do not offer an open button (E.3 §9).
+            unsafe = QLabel("下载链接不可用，请稍后再试。")
+            unsafe.setObjectName("dialog-body")
+            unsafe.setWordWrap(True)
+            root.addWidget(unsafe)
         root.addLayout(row)
 
     def _open(self):

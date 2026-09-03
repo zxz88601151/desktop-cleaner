@@ -31,7 +31,7 @@ a = Analysis(
     [str(project_root / "main.py")],
     pathex=[src_path],
     binaries=[],
-    datas=[],
+    datas=[(str(project_root / "assets" / "author.jpg"), "assets")],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

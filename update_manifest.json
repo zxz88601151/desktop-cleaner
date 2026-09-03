@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "product": "DesktopCleaner",
-  "latest_version": "1.1.0",
+  "latest_version": "1.1.1",
   "minimum_supported_version": "1.1.0",
   "release_channel": "stable",
-  "download_url": "http://192.168.3.200:3000/zxzjxx/desktop-cleaner/releases/latest",
-  "sha256": "dacdb0e9caa5218de6e43f907b2a66a335b9d063da2679370f7f308e27297c59",
+  "download_url": "https://update.ycqinnan.cn/releases/DesktopCleaner-1.1.1.exe",
+  "sha256": "22493096bd0ae9bcce4438b6b5eb48a089a178aa7245866f4392f60c7d7c18d6",
   "release_notes": [
-    "Desktop Cleaner 首个公开版本：一键整理桌面 / 下载等杂乱文件夹，按类型或日期自动分类，整理前预览、整理后可一键撤销。"
+    "新增关于页作者信息与联系方式（作者：张兴中 / 微信：zxzjxx007）、作者图片及固定版权与溯源标识；关于页新增“检查更新”入口，更新源迁移至公网 HTTPS 更新服务。"
   ],
-  "published_at": "2026-08-28"
+  "published_at": "2026-09-03"
 }
