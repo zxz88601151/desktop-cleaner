@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from core import plan, scan, summarize_plan, move_items
+from core.custom_rules import effective_rules
 from core.organizer import OrganizeResult
 from core.rules import DEFAULT_RULES, category_display
 from core.scanner import ScanResult
@@ -317,7 +318,11 @@ class OrganizePage(QWidget):
 
     @staticmethod
     def _task_scan(root, mode, recursive, p, l):
-        result = scan(Path(root), mode=mode, recursive=recursive)
+        # V1.2-A F4: classify with the EFFECTIVE rules (built-in + user), never
+        # the raw defaults. Read here (worker thread) so a change made on the
+        # rules page is picked up by the very next scan.
+        result = scan(Path(root), mode=mode, recursive=recursive,
+                      rules=effective_rules())
         l(f"扫描到 {result.total} 个文件")
         return result
 
@@ -403,7 +408,10 @@ class OrganizePage(QWidget):
 
     @staticmethod
     def _task_plan(root, mode, recursive, p, l):
-        items = plan(Path(root), mode=mode, recursive=recursive)
+        # V1.2-A F4: the plan must be built from the same effective rules the
+        # preview used, or the preview would not match what actually moves.
+        items = plan(Path(root), mode=mode, recursive=recursive,
+                     rules=effective_rules())
         l(f"已规划 {len(items)} 个文件的移动")
         return summarize_plan(items, Path(root))
 
@@ -445,7 +453,8 @@ class OrganizePage(QWidget):
         # P0-1 严格顺序：先落库 pending -> 移动+校验 -> 更新 moved/failed
         hid = history_repo.create(root, mode, 0)
         l(f"已创建整理记录 #{hid}")
-        items = plan(Path(root), mode=mode, recursive=recursive)
+        items = plan(Path(root), mode=mode, recursive=recursive,
+                     rules=effective_rules())
         operation_repo.bulk_insert_pending(hid, items)  # 移动前记录 pending
         result = move_items(items, on_progress=p)        # 移动 + 逐文件校验
         moved_targets = {str(it.target) for it in result.items}

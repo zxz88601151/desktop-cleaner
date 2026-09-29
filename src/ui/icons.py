@@ -415,6 +415,26 @@ def _d_executable(p, col):
     p.drawLine(_pt(12, 16), _pt(15, 13))
 
 
+@_drawer("chart")
+def _d_chart(p, col):
+    p.setPen(_pen(col))
+    # axes
+    p.drawLine(_pt(4, 4), _pt(4, 20))
+    p.drawLine(_pt(4, 20), _pt(20, 20))
+    # bars of increasing height
+    _rect(p, 7, 14, 3, 6)
+    _rect(p, 12, 10, 3, 10)
+    _rect(p, 17, 6, 3, 14)
+
+
+@_drawer("sliders")
+def _d_sliders(p, col):
+    p.setPen(_pen(col))
+    for y, knob in ((8, 9.0), (12, 15.0), (16, 7.0)):
+        p.drawLine(_pt(4, y), _pt(20, y))
+        _fill_circle(p, knob, y, 2.2)
+
+
 # --------------------------------------------------------------------------- #
 # public API
 # --------------------------------------------------------------------------- #

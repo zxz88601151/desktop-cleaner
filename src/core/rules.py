@@ -6,6 +6,8 @@ users are Chinese-speaking non-technical users).
 """
 from __future__ import annotations
 
+import hashlib
+
 # Stable internal category keys -> display names shown in the UI.
 CATEGORY_NAMES: dict[str, str] = {
     "images": "图片",
@@ -119,3 +121,17 @@ def category_emoji(label: str) -> str:
     if is_date_dir(label):
         return "📅"
     return "📂"
+
+
+def rules_fingerprint(rules: dict[str, str] | None = None) -> str:
+    """Stable, content-derived identifier for a rule set.
+
+    A report must record *which* rules produced it, so two reports can be
+    compared across app versions or against a user's own rule set (V1.2-A
+    feature 4). The value is a pure function of the rule contents: same rules
+    -> same id, any change -> different id.
+    """
+    rules = DEFAULT_RULES if rules is None else rules
+    payload = ";".join(f"{k}={v}" for k, v in sorted(rules.items()))
+    digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
+    return f"rules-{digest}-{len(rules)}"

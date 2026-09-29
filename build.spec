@@ -9,6 +9,10 @@ src_path = str(project_root / "src")
 
 hiddenimports = [
     "core", "core.classifier", "core.organizer", "core.rules", "core.scanner",
+    "core.empty_folders",
+    "core.analysis",
+    "core.report",
+    "core.custom_rules",
     "data", "data.database", "data.settings_repo",
     "data.history_repo", "data.operation_repo",
     "ui", "ui.styles", "ui.dashboard",
@@ -19,7 +23,10 @@ hiddenimports = [
     "ui.widgets.score_ring", "ui.pages",
     "ui.pages.dashboard_page", "ui.pages.organize_page",
     "ui.pages.custom_page", "ui.pages.history_page", "ui.pages.settings_page",
-    "ui.pages.large_files_page", "ui.pages.tools_page",
+    "ui.pages.large_files_page", "ui.pages.empty_folders_page",
+    "ui.pages.analysis_page",
+    "ui.pages.rules_page",
+    "ui.pages.tools_page",
     "ui.undo", "ui.app_shell", "ui.coming_soon", "ui.features",
     "ui.icons",
     "version",

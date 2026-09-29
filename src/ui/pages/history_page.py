@@ -35,6 +35,37 @@ STATUS_LABELS = {
     "failed": "失败",
 }
 
+# V1.2-A: history now covers more than organizing, so the mode label / icon are
+# looked up instead of hard-coded to "type vs date".
+MODE_LABELS = {
+    "type": "按类型整理",
+    "date": "按日期整理",
+    "empty_folders": "空文件夹清理",
+}
+MODE_ICONS = {
+    "type": "folder",
+    "date": "calendar",
+    "empty_folders": "open_folder",
+}
+# What the row's count column means, per mode.
+MODE_VERBS = {
+    "type": "整理",
+    "date": "整理",
+    "empty_folders": "清理",
+}
+
+
+def _mode_label(mode: str) -> str:
+    return MODE_LABELS.get(mode, mode)
+
+
+def _mode_icon(mode: str) -> str:
+    return MODE_ICONS.get(mode, "folder")
+
+
+def _mode_verb(mode: str) -> str:
+    return MODE_VERBS.get(mode, "整理")
+
 
 def _relative_time(iso: str) -> str:
     """P2-4: human-friendly relative time from an ISO timestamp."""
@@ -71,16 +102,16 @@ class HistoryRow(QFrame):
         icon = QLabel()
         icon.setObjectName("tl-ico")
         icon.setFixedSize(22, 22)
-        icon.setPixmap(
-            pixmap("folder" if rec["mode"] == "type" else "calendar", color("text_secondary"), 22)
-        )
+        icon.setPixmap(pixmap(_mode_icon(rec["mode"]), color("text_secondary"), 22))
 
         col = QVBoxLayout()
         col.setSpacing(2)
         title = QLabel(f"#{rec['id']}  ·  {_relative_time(rec['created_at'])}")
         title.setObjectName("tl-title")
-        mode_text = "按类型整理" if rec["mode"] == "type" else "按日期整理"
-        sub = QLabel(f"{mode_text}  ·  整理 {rec['organized_files']} 个文件")
+        mode_text = _mode_label(rec["mode"])
+        sub = QLabel(
+            f"{mode_text}  ·  {_mode_verb(rec['mode'])} {rec['organized_files']} 个"
+        )
         sub.setObjectName("tl-sub")
         src = QLabel(rec["source_path"])
         src.setObjectName("tl-sub")

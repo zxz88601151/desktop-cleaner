@@ -61,9 +61,13 @@ def run_undo(hid: int, on_progress=None, on_log=None) -> dict:
 def _remove_empty_category_dirs(root: Path):
     """撤销后清理变成空的分类 / 日期目录。"""
     try:
+        from core.empty_folders import QUARANTINE_DIRNAME
         from core.rules import CATEGORY_NAMES, is_date_dir
 
         names = set(CATEGORY_NAMES.values())
+        # V1.2-A: the empty-folder quarantine dir must also be tidied up once
+        # an undo has emptied it.
+        names.add(QUARANTINE_DIRNAME)
         for child in root.iterdir():
             if not child.is_dir():
                 continue

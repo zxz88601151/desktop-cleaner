@@ -35,8 +35,11 @@ from ui.theme_manager import ThemeManager
 # the default route. Navigation is closed to 整理 / 历史 / 设置 (+ bottom 关于).
 _NAV = [
     ("organize", "sort", "整理"),
+    ("analysis", "chart", "文件夹分析"),
+    ("empty", "open_folder", "空文件夹"),
     ("history", "history", "整理历史"),
     ("settings", "settings", "设置"),
+    ("rules", "sliders", "自定义规则"),
 ]
 
 _BOTTOM = [
