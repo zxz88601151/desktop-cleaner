@@ -81,6 +81,11 @@ class DashboardPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Keep a strong reference to the running Worker. A *local* variable would
+        # let the QThread be garbage-collected while still running, which Qt
+        # reports as "QThread: Destroyed while thread is still running" and can
+        # crash the process.
+        self._worker: Worker | None = None
         self._build()
         ThemeManager.instance().on_changed(self._on_theme)
 
@@ -208,6 +213,8 @@ class DashboardPage(QWidget):
     # ----------------------------- undo ----------------------------------- #
     def _undo_latest(self):
         """首页「一键还原最近一次整理」：仅当存在可撤销记录时可用。"""
+        if self._busy():
+            return
         latest = history_repo.latest_done()
         if latest is None:
             return
@@ -217,12 +224,15 @@ class DashboardPage(QWidget):
             return
         self._undo_btn.setDisabled(True)
         self._undo_btn.setText("还原中…")
-        worker = Worker(lambda p, l: run_undo(latest["id"], p, l))
-        worker.progress.connect(lambda *_: None)
-        worker.log.connect(lambda *_: None)
-        worker.finished.connect(self._on_undo_finished)
-        worker.error.connect(self._on_undo_error)
-        worker.start()
+        self._worker = Worker(lambda p, l: run_undo(latest["id"], p, l))
+        self._worker.progress.connect(lambda *_: None)
+        self._worker.log.connect(lambda *_: None)
+        self._worker.finished.connect(self._on_undo_finished)
+        self._worker.error.connect(self._on_undo_error)
+        self._worker.start()
+
+    def _busy(self) -> bool:
+        return self._worker is not None and self._worker.isRunning()
 
     def _on_undo_finished(self, payload: dict):
         result = payload["result"]

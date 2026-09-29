@@ -46,21 +46,28 @@ DEFAULT_RULES: dict[str, str] = {
     "epub": "documents", "mobi": "documents", "wps": "documents",
     "pages": "documents",
     # --- videos ---
+    # NOTE: ".ts" is ambiguous (MPEG transport stream video vs. TypeScript
+    # source). It is claimed by BOTH the video and code families, and a plain
+    # dict literal would silently keep only the last occurrence. We resolve the
+    # ambiguity explicitly here in favour of *video*, because this product
+    # targets non-technical desktop users, for whom a downloaded/recorded ".ts"
+    # is far more likely a video than source code. Developers' ".tsx"/".jsx"
+    # stay in the code family. Flip this single mapping if the audience changes.
     "mp4": "videos", "avi": "videos", "mkv": "videos", "mov": "videos",
     "wmv": "videos", "flv": "videos", "webm": "videos", "m4v": "videos",
     "mpg": "videos", "mpeg": "videos", "ts": "videos", "3gp": "videos",
-    "vob": "videos",
+    "vob": "videos", "m2ts": "videos", "mts": "videos",
     # --- audio ---
     "mp3": "audio", "wav": "audio", "flac": "audio", "aac": "audio",
     "ogg": "audio", "m4a": "audio", "wma": "audio", "ape": "audio",
-    "opus": "audio", "wav": "audio",
+    "opus": "audio",
     # --- archives ---
     "zip": "archives", "rar": "archives", "7z": "archives",
     "tar": "archives", "gz": "archives", "bz2": "archives",
     "xz": "archives", "tgz": "archives", "zst": "archives",
     "iso": "archives",
     # --- code / dev files ---
-    "py": "code", "js": "code", "ts": "code", "tsx": "code", "jsx": "code",
+    "py": "code", "js": "code", "tsx": "code", "jsx": "code",
     "java": "code", "cpp": "code", "c": "code", "h": "code", "hpp": "code",
     "html": "code", "htm": "code", "css": "code", "scss": "code",
     "json": "code", "xml": "code", "sql": "code", "ipynb": "code",

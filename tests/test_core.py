@@ -49,6 +49,31 @@ def _assert(cond: bool, msg: str):
     print("  ok:", msg)
 
 
+def test_rules_no_duplicate_extensions():
+    """Regression guard: DEFAULT_RULES must never declare an extension twice.
+
+    A duplicate key in a dict literal is silently resolved to the *last*
+    occurrence — this is exactly how ".ts" used to be stolen from 视频 by 代码,
+    and ".wav" was declared twice. We check the source text (the only place the
+    duplication is visible) so the bug cannot silently return.
+    """
+    print("[8] rules: no duplicate extension keys")
+    import re
+    from collections import Counter
+
+    from core.rules import DEFAULT_RULES
+
+    txt = (ROOT / "src" / "core" / "rules.py").read_text(encoding="utf-8")
+    body = txt.split("DEFAULT_RULES: dict[str, str] = {", 1)[1].split("}", 1)[0]
+    exts = re.findall(r'"([A-Za-z0-9]+)"\s*:', body)
+    dups = {k: v for k, v in Counter(exts).items() if v > 1}
+    _assert(not dups, f"no duplicate extension keys (found {dups})")
+    # the previously ambiguous mappings must now be explicit and single-sourced
+    _assert(DEFAULT_RULES.get("ts") == "videos", ".ts -> videos (explicit)")
+    _assert(DEFAULT_RULES.get("tsx") == "code", ".tsx -> code")
+    _assert(DEFAULT_RULES.get("wav") == "audio", ".wav -> audio")
+
+
 def main():
     database.init_db()
     src = _make_source()
@@ -108,6 +133,8 @@ def main():
     _assert(rd.moved == 1, "date mode moved 1")
     date_folders = [p for p in src3.iterdir() if p.is_dir() and len(p.name) == 7]
     _assert(len(date_folders) == 1, "one YYYY-MM folder created")
+
+    test_rules_no_duplicate_extensions()
 
     print("\nALL TESTS PASSED")
 

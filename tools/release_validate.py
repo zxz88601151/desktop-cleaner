@@ -95,7 +95,11 @@ def http_get_status(url: str, timeout: int = 10) -> int | None:
 
 def http_download_sha256(url: str, timeout: int = 30) -> tuple[str | None, int | None]:
     """Download url to a temp file; return (sha256, final_status)."""
-    tmp = Path(tempfile.mkstemp(prefix="dc_relcheck_", suffix=".bin")[1])
+    # mkstemp returns an open fd as well as the path; we only need the path, so
+    # close the fd immediately — otherwise every call leaks a file handle.
+    fd, tmp_name = tempfile.mkstemp(prefix="dc_relcheck_", suffix=".bin")
+    os.close(fd)
+    tmp = Path(tmp_name)
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "ReleaseValidate"})
         with urllib.request.urlopen(req, timeout=timeout) as resp, open(tmp, "wb") as f:

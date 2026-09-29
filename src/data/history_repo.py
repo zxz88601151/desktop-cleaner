@@ -51,9 +51,14 @@ def latest_done() -> Optional[dict]:
 def get_stats() -> dict:
     """Aggregate dashboard statistics from the history table.
 
-    - total_files: sum of files organized in *successful* runs (status='done')
-    - runs:        number of completed organize runs (done or later undone)
-    - last_time:   timestamp of the most recent completed run, or None
+    Both counters intentionally include runs that were later undone — they are
+    *cumulative activity* metrics ("how much tidying has happened"), not
+    "currently organized" metrics. This is locked by tests/test_dashboard.py
+    ("undone runs still count toward runs total").
+
+    - total_files: sum of ``organized_files`` over all done/undone runs
+    - runs:        number of done/undone runs
+    - last_time:   ``created_at`` of the most recent done/undone run, or None
 
     Read-only; does not alter the schema or any row.
     """

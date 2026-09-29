@@ -8,7 +8,8 @@ Covers the required matrix (§16):
 - Checker network (mocked): success / timeout / DNS failure / HTTP error / malformed JSON
 - Integrity: SHA-256 correct / mismatch / missing / malformed
 - Decision: NONE (current==latest, current>latest) / NORMAL / IMPORTANT / FORCE
-- Manager (Qt): background fetch emits update_available / no_update; throttle; silent on failure
+- Manager (Qt): background fetch emits update_available / no_update / check_failed;
+  throttle is consumed only by a *successful* fetch (a failure must retry next launch)
 
 The manager test spins a real QApplication + worker thread with the network fetch
 monkeypatched, so it validates the non-blocking wiring without touching the network.
@@ -277,15 +278,32 @@ def test_manager():
     pump()
     _assert("none" in got and "avail" not in got, "no_update when current>=latest")
 
-    # case 3: fetch fails -> silent no_update (never raises)
+    # case 3: fetch fails -> check_failed (NEVER no_update); never raises
     mgr_mod.fetch_manifest = lambda *a, **k: None
     got.clear()
     mgr = mgr_mod.UpdateManager("1.1.0")
     mgr.update_available.connect(lambda mf: got.setdefault("avail", mf))
     mgr.no_update.connect(lambda: got.setdefault("none", True))
+    mgr.check_failed.connect(lambda: got.setdefault("failed", True))
     mgr.start_check(force=True)
     pump()
-    _assert("none" in got, "silent no_update on fetch failure")
+    _assert("failed" in got, "check_failed emitted on fetch failure")
+    _assert(
+        "none" not in got,
+        "no_update NOT emitted on fetch failure (no false 'up to date')",
+    )
+
+    # case 4: a FAILED check must not consume the 24h throttle (retry next launch)
+    from data import settings_repo
+
+    settings_repo.set("last_update_check", "")  # clear any window from case 1/2
+    mgr = mgr_mod.UpdateManager("1.1.0")
+    mgr.start_check(force=True)
+    pump()
+    _assert(
+        mgr._should_check() is True,
+        "failed check leaves the throttle window open (retry allowed)",
+    )
 
     mgr_mod.fetch_manifest = real_fetch
 

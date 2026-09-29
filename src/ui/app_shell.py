@@ -64,6 +64,7 @@ class AppShell(QWidget):
         self._update_mgr = UpdateManager(__version__, self)
         self._update_mgr.update_available.connect(self._on_update_available)
         self._update_mgr.no_update.connect(self._on_no_update)
+        self._update_mgr.check_failed.connect(self._on_check_failed)
         self._pages["settings"].check_update.connect(self._on_manual_check_requested)
 
     # ----------------------------- build --------------------------------- #
@@ -182,8 +183,25 @@ class AppShell(QWidget):
 
     def _on_no_update(self):
         # Background checks stay silent. A manual check reports "up to date".
+        # This signal now fires ONLY on a successful check, so the message is
+        # never shown for a failed/offline check (see _on_check_failed).
         if self._manual_check_pending:
             from PySide6.QtWidgets import QMessageBox
 
             QMessageBox.information(self, "检查更新", "当前已是最新版本。")
+        self._manual_check_pending = False
+
+    def _on_check_failed(self):
+        """The update fetch failed (offline / timeout / TLS / malformed).
+
+        Fail-closed semantics: a network failure must never be presented as
+        "已是最新". Background checks stay silent; a user-initiated check gets an
+        explicit failure message so the user can retry later.
+        """
+        if self._manual_check_pending:
+            from PySide6.QtWidgets import QMessageBox
+
+            QMessageBox.warning(
+                self, "检查更新", "检查更新失败：无法连接更新服务，请稍后重试。"
+            )
         self._manual_check_pending = False

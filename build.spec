@@ -15,16 +15,18 @@ hiddenimports = [
     "ui.preview_report", "ui.welcome", "ui.about",
     "ui.themes", "ui.theme_manager",
     "ui.theme", "ui.theme.themes", "ui.theme.theme_manager",
-    "ui.state", "ui.widgets", "ui.widgets.controls", "ui.pages",
+    "ui.state", "ui.widgets", "ui.widgets.controls", "ui.widgets.sidebar",
+    "ui.widgets.score_ring", "ui.pages",
     "ui.pages.dashboard_page", "ui.pages.organize_page",
     "ui.pages.custom_page", "ui.pages.history_page", "ui.pages.settings_page",
-    "ui.pages.tools_page",
+    "ui.pages.large_files_page", "ui.pages.tools_page",
     "ui.undo", "ui.app_shell", "ui.coming_soon", "ui.features",
+    "ui.icons",
     "version",
     "update", "update.version", "update.constants", "update.manifest",
     "update.checker", "update.decision", "update.integrity",
     "update.manager", "update.update_dialog",
-    "utils", "utils.format", "utils.logger",
+    "utils", "utils.format", "utils.logger", "utils.paths", "utils.errors",
 ]
 
 a = Analysis(
