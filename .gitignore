@@ -36,3 +36,7 @@ venv/
 
 # Local UI-1.3 verification harness (rendering / scans / bisect)
 .tmp_check/
+
+# AI assistant session / workspace memory. Holds conversation state and local
+# notes -- must never be published. (Previously only untracked by luck.)
+.workbuddy-ai/
