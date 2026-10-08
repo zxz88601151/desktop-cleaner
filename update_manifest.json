@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "product": "DesktopCleaner",
-  "latest_version": "1.1.1",
-  "minimum_supported_version": "1.1.0",
+  "latest_version": "1.2.0",
+  "minimum_supported_version": "1.1.1",
   "release_channel": "stable",
-  "download_url": "https://update.ycqinnan.cn/releases/DesktopCleaner-1.1.1.exe",
-  "sha256": "22493096bd0ae9bcce4438b6b5eb48a089a178aa7245866f4392f60c7d7c18d6",
+  "download_url": "https://update.ycqinnan.cn/releases/DesktopCleaner-1.2.0.exe",
+  "sha256": "cc6c10d4c0217f18d220f961059a710fa8a30ec2f1c583ac5ce60d05d9ced047",
   "release_notes": [
-    "新增关于页作者信息与联系方式（作者：张兴中 / 微信：zxzjxx007）、作者图片及固定版权与溯源标识；关于页新增“检查更新”入口，更新源迁移至公网 HTTPS 更新服务。"
+    "V1.2-A 四大新功能：空文件夹清理、文件夹分析、导出报告、自定义规则；新增大文件页；扫描性能大幅提升；整理可靠性修复（同名文件不再分配同一目标）；安装包瘦身 8.2 MiB（剔除未使用的 Qt QML 栈）。"
   ],
-  "published_at": "2026-09-03"
+  "published_at": "2026-10-09"
 }

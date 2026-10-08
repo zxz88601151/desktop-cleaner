@@ -49,6 +49,44 @@ a = Analysis(
     noarchive=False,
 )
 
+# --- Prune the unused Qt Qml / Quick stack --------------------------------
+# pyinstaller-hooks-contrib (2026.7) now collects the Qt VirtualKeyboard
+# platform-input plugin, and that plugin drags in the whole Qt Qml / Quick
+# stack plus Qt6Pdf and Qt6OpenGL: ~19 MB uncompressed / ~9 MB inside the EXE.
+#
+# This application imports only PySide6.QtWidgets / QtCore / QtGui. The last
+# known-good release (built before that hooks upgrade) shipped without any of
+# these DLLs, so dropping them simply restores that proven set.
+#
+# NOTE: the tokens are deliberately specific. "qt6opengl" must NOT be widened
+# to "opengl", because PySide6\opengl32sw.dll *is* required -- it is the
+# software OpenGL fallback QtWidgets uses when no GPU driver is available.
+#
+# `excludes=` cannot express this: it filters Python modules only, whereas
+# these files are collected as binaries / data by the PySide6 hook. The TOC
+# has to be filtered after Analysis instead.
+_QT_UNUSED = (
+    "qt6qml",                # Qt6Qml, Qt6QmlMeta, Qt6QmlModels, Qt6QmlWorkerScript
+    "qt6quick",              # Qt6Quick, Qt6QuickControls2, Qt6QuickWidgets
+    "qt6virtualkeyboard",
+    "qt6pdf",
+    "qt6opengl",             # Qt6OpenGL, Qt6OpenGLWidgets (NOT opengl32sw)
+    "qtvirtualkeyboardplugin",
+    "qpdf.dll",
+)
+
+
+def _keep_qt_entry(entry) -> bool:
+    name = str(entry[0]).lower()
+    return not any(token in name for token in _QT_UNUSED)
+
+
+_pruned = len(a.binaries) + len(a.datas)
+a.binaries = [b for b in a.binaries if _keep_qt_entry(b)]
+a.datas = [d for d in a.datas if _keep_qt_entry(d)]
+_pruned -= len(a.binaries) + len(a.datas)
+print(f"[build.spec] pruned {_pruned} unused Qt Qml/Quick/Pdf/OpenGL entries")
+
 pyz = PYZ(a.pure)
 
 exe = EXE(

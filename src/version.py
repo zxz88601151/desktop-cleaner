@@ -3,7 +3,7 @@ from __future__ import annotations
 
 APP_NAME = "Desktop Cleaner"
 APP_NAME_ZH = "桌面文件整理助手"
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 TAGLINE = "每天一个使用小工具"
 AUTHOR = "© 中哥"
 AUTHOR_NAME = "张兴中"

@@ -5,10 +5,14 @@
 #                       PyInstaller 声明 6.11.1 / 实际 6.22.2。
 # 现统一对齐到真实环境版本，详见 docs/DEPENDENCY_BASELINE.md。
 #
+# 1.2.0 发布时再次对齐（2026-10-09）：PyInstaller 声明 6.22.2 / 实际构建环境 6.22.3
+# （补丁级差异）。现把声明对齐到实际的 6.22.3；PySide6 仍为 6.11.2，无变化。
+#
 # PySide6：真实构建环境为 Python 3.13.14（Windows 11），6.11.2 为已验证可安装、
 # 已真实验证构建/启动/GUI 的版本。应用仅使用 PySide6 稳定 Widget API。
 PySide6==6.11.2
 
 # PyInstaller：已在真实构建环境（Windows 11 / Python 3.13.14 / PySide6 6.11.2）
-# 实测验证构建与启动 -> PASS（UI-1.3 Phase 1.5）。
-pyinstaller==6.22.2
+# 实测验证构建与启动 -> PASS（UI-1.3 Phase 1.5）；1.2.0 发布时于 6.22.3 上复验
+# 「构建 + 启动冒烟」-> PASS。
+pyinstaller==6.22.3

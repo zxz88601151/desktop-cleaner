@@ -141,6 +141,9 @@ def resolve_remote_download_url(manifest: dict) -> str | None:
                     return a.get("browser_download_url") or a.get("url")
         except Exception:
             return None
+    # Direct asset URL (already a versioned DesktopCleaner-<ver>.exe): use as-is.
+    if re.search(r"DesktopCleaner-\d+\.\d+\.\d+\.exe$", url, re.IGNORECASE):
+        return url
     return None
 
 
