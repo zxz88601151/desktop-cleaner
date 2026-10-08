@@ -32,9 +32,11 @@ from ui.theme_manager import ThemeManager
 # from the sidebar.
 # UI-1.3: "更多工具" / Tools removed from product UI (Decision 02).
 # UI-1.3 Phase 1.5: "首页" removed from the nav — 整理 is the Product Home and
-# the default route. Navigation is closed to 整理 / 历史 / 设置 (+ bottom 关于).
+# the default route. Navigation is closed to 整理 / 大文件 / 历史 / 设置
+# (+ bottom 关于). PHASE 1.2 adds the 大文件分析 entry (independent page).
 _NAV = [
     ("organize", "sort", "整理"),
+    ("large", "search", "大文件"),
     ("analysis", "chart", "文件夹分析"),
     ("empty", "open_folder", "空文件夹"),
     ("history", "history", "整理历史"),

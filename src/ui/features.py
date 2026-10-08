@@ -91,8 +91,8 @@ FEATURES: list[FeatureDefinition] = [
         icon="📦",
         description="快速找到占用空间较大的文件。",
         category="storage",
-        status=FeatureStatus.COMING_SOON,
-        coming_soon=True,
+        status=FeatureStatus.AVAILABLE,  # PHASE 1.2: shipped as an independent page
+        coming_soon=False,
     ),
     FeatureDefinition(
         key="EMPTY_FOLDER",

@@ -28,6 +28,7 @@ from ui.pages.custom_page import CustomPage
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.empty_folders_page import EmptyFoldersPage
 from ui.pages.history_page import HistoryPage
+from ui.pages.large_files_page import LargeFilesPage
 from ui.pages.organize_page import OrganizePage
 from ui.pages.rules_page import RulesPage
 from ui.pages.settings_page import SettingsPage
@@ -39,6 +40,7 @@ from version import __version__
 _TITLES = {
     "home": "首页",
     "organize": "整理",
+    "large": "大文件分析",
     "analysis": "文件夹分析",
     "empty": "空文件夹清理",
     "custom": "整理方案",
@@ -93,6 +95,7 @@ class AppShell(QWidget):
         self._pages = {
             "home": DashboardPage(),
             "organize": OrganizePage(),
+            "large": LargeFilesPage(),
             "analysis": AnalysisPage(),
             "empty": EmptyFoldersPage(),
             "custom": CustomPage(),

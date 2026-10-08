@@ -45,22 +45,34 @@ class OrganizeResult:
     failed_details: List[dict] = field(default_factory=list)
 
 
-def _unique_target(target: Path) -> Path:
+def _unique_target(target: Path, reserved: Optional[set] = None) -> Path:
     """Return *target*, renamed with a numeric suffix if it already exists.
 
     Existence checks use the long-path-safe form (P1-5) so deeply nested
     targets are evaluated correctly; the returned value stays a plain
     ``Path`` so downstream code (which re-applies ``win_long`` at the actual
     ``shutil.move`` call) remains consistent.
+
+    ``reserved`` holds the string form of targets already handed out by the
+    current plan. Two source files with the same name (e.g. ``a/x.txt`` and
+    ``b/x.txt``) would otherwise be assigned the *same* target: on Windows
+    the second move then fails, and on POSIX ``os.rename`` would silently
+    overwrite the first file — violating the never-overwrite guarantee.
+    Reserving planned targets closes that intra-plan collision.
     """
-    if not os.path.exists(win_long(target)):
+    def _taken(p: Path) -> bool:
+        if reserved is not None and str(p) in reserved:
+            return True
+        return os.path.exists(win_long(p))
+
+    if not _taken(target):
         return target
     stem = target.stem
     suffix = target.suffix
     i = 1
     while True:
         candidate = target.parent / f"{stem} ({i}){suffix}"
-        if not os.path.exists(win_long(candidate)):
+        if not _taken(candidate):
             return candidate
         i += 1
 
@@ -86,6 +98,9 @@ def plan(
     # would wrongly merge a symlink with its target and could drop a legitimate
     # file from the plan.
     seen: set = set()
+    # Reserve every target handed out so same-named files from different
+    # folders never share one destination (see _unique_target).
+    reserved: set = set()
     for f in scan_result.files:
         key = str(f)
         if key in seen:
@@ -93,7 +108,8 @@ def plan(
         seen.add(key)
         label = _category_label(f, mode, rules)
         target_dir = Path(root) / label
-        target = _unique_target(target_dir / f.name)
+        target = _unique_target(target_dir / f.name, reserved)
+        reserved.add(str(target))
         items.append(PlanItem(source=f, target=target, category=label))
     return items
 

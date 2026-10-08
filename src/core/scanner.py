@@ -5,9 +5,8 @@ import datetime
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Iterator, List, Optional, Tuple
 
-from .classifier import classify
 from .rules import (
     DEFAULT_RULES,
     CATEGORY_NAMES,
@@ -29,7 +28,13 @@ _HIDDEN_ATTR = 0x2
 
 
 def _is_hidden(path: Path) -> bool:
-    """Return True for hidden files (best-effort, cross-platform)."""
+    """Return True for hidden files (best-effort, cross-platform).
+
+    Kept as the canonical path-based check for callers that only have a
+    :class:`Path` (e.g. empty-folder detection). The hot path in :func:`scan`
+    uses :func:`_entry_is_hidden` instead, which reuses the already-fetched
+    ``stat()`` result and costs no extra syscall.
+    """
     if os.name == "nt":
         try:
             import ctypes
@@ -45,6 +50,30 @@ def _is_hidden(path: Path) -> bool:
     return path.name.startswith(".")
 
 
+def _entry_is_hidden(entry: os.DirEntry, st: os.stat_result) -> bool:
+    """Hidden check for a scandir entry, reusing its cached ``stat()``.
+
+    On Windows the hidden flag is read from ``st_file_attributes`` carried by
+    the stat result itself — this eliminates the per-file
+    ``GetFileAttributesW`` ctypes call the old scanner made. Off Windows the
+    dotfile convention needs no syscall at all.
+    """
+    if os.name == "nt":
+        attrs = getattr(st, "st_file_attributes", None)
+        if attrs is not None:
+            return bool(attrs & _HIDDEN_ATTR)
+        # Exotic stat implementations without st_file_attributes: fall back
+        # to the single attribute query (same semantics as _is_hidden).
+        try:
+            import ctypes
+
+            a = ctypes.windll.kernel32.GetFileAttributesW(win_long(entry.path))
+            return a != -1 and bool(a & _HIDDEN_ATTR)
+        except Exception:  # noqa: BLE001 - cannot determine -> treat as visible
+            return False
+    return entry.name.startswith(".")
+
+
 @dataclass
 class ScanResult:
     root: Path
@@ -52,10 +81,18 @@ class ScanResult:
     by_category: Dict[str, int] = field(default_factory=dict)
     by_category_size: Dict[str, int] = field(default_factory=dict)
     total_size: int = 0
+    # PHASE 1.2: per-file size in bytes keyed by ``str(path)``. The stat is
+    # already performed below (``st.st_size``) — this simply keeps it so the
+    # large-files discovery can sort by real bytes without a second stat pass.
+    sizes: Dict[str, int] = field(default_factory=dict)
 
     @property
     def total(self) -> int:
         return len(self.files)
+
+
+def _date_label_from_ts(ts: float) -> str:
+    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m")
 
 
 def _date_label(path: Path) -> str:
@@ -63,7 +100,63 @@ def _date_label(path: Path) -> str:
         ts = path.stat().st_mtime
     except OSError:
         ts = datetime.datetime.now().timestamp()
-    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m")
+    return _date_label_from_ts(ts)
+
+
+def _walk_files(
+    root: Path,
+    recursive: bool,
+    skip_top_dirs: set,
+) -> Iterator[Tuple[os.DirEntry, str, Path]]:
+    """Yield ``(entry, top_name, logical_path)`` for files under *root*.
+
+    Built on :func:`os.scandir`:
+
+    - Each directory entry costs a **single** syscall. :class:`os.DirEntry`
+      caches the ``stat()`` result, so the caller's ``is_file()`` / ``stat()``
+      / size / mtime / hidden-attribute reads are all served from that one
+      call. (The old implementation paid ~3 syscalls per file: ``is_file()``,
+      a ctypes ``GetFileAttributesW`` for the hidden flag, and another
+      ``stat()`` for size/mtime.)
+    - Previously-organized output folders (category names / ``YYYY-MM`` dirs)
+      are **pruned at the top level** instead of being descended into and
+      filtered per file — same result, far less traversal on re-scans.
+
+    ``top_name`` is the first path component under *root* (the file name
+    itself for direct children), so the caller can apply the same
+    first-component skip rule the old ``relative_to(root).parts[0]`` check
+    implemented, without building a relative path per file. ``logical_path``
+    is the plain :class:`Path` (no ``\\\\?\\`` prefix) for downstream use;
+    only the ``scandir()`` call itself goes through :func:`win_long`.
+    """
+    # Stack items: (logical dir, top_name or None while at the first level).
+    stack: List[Tuple[Path, Optional[str]]] = [(root, None)]
+    while stack:
+        d, top = stack.pop()
+        try:
+            with os.scandir(win_long(d)) as it:
+                # Sorted for deterministic output: the same tree always
+                # yields the same file order (and therefore the same plan /
+                # move order), independent of filesystem enumeration order.
+                entries = sorted(it, key=lambda e: e.name)
+        except OSError:
+            continue
+        for entry in entries:
+            try:
+                is_dir = entry.is_dir(follow_symlinks=False)
+            except OSError:
+                continue
+            if is_dir:
+                if not recursive:
+                    continue
+                name = entry.name
+                if top is None and (name in skip_top_dirs or is_date_dir(name)):
+                    continue  # output of a previous run: do not descend
+                stack.append((d / name, name if top is None else top))
+            else:
+                # Direct children report their own name as the "top" component,
+                # mirroring the old parts[0] check for top-level files.
+                yield entry, (top if top is not None else entry.name), d / entry.name
 
 
 def scan(
@@ -98,43 +191,42 @@ def scan(
     # "图片") from being re-processed when the user later runs date mode (and
     # vice versa for "2026-08"). A real file therefore yields at most one plan
     # item per scan round.
-    _ALWAYS_SKIP = set(CATEGORY_NAMES.values())
+    skip_top_dirs = set(CATEGORY_NAMES.values()) | set(exclude_dirs)
 
     _log.info(
         "SCAN START root=%s mode=%s recursive=%s", root, mode, recursive
     )
 
     result = ScanResult(root=Path(root))
-    candidates: List[Path] = []
 
-    iterator = root.rglob("*") if recursive else root.glob("*")
-    for entry in iterator:
-        if not entry.is_file():
-            continue
-        # P0-4: skip Windows system files & hidden files.
-        if entry.name.lower() in _SYSTEM_FILES:
-            continue
-        if _is_hidden(entry):
-            continue
+    for entry, first, logical in _walk_files(Path(root), recursive, skip_top_dirs):
         # Skip output folders from previous runs (both modes).
-        rel = entry.relative_to(root)
-        parts = rel.parts
-        if parts and (parts[0] in _ALWAYS_SKIP or parts[0] in exclude_dirs
-                      or is_date_dir(parts[0])):
+        if first in skip_top_dirs or is_date_dir(first):
             continue
-        candidates.append(entry)
-
-    for f in candidates:
-        if mode == "date":
-            label = _date_label(f)
-        else:
-            label = category_display(classify(f, rules))
-        result.files.append(f)
-        result.by_category[label] = result.by_category.get(label, 0) + 1
+        name = entry.name
+        # P0-4: skip Windows system files & hidden files.
+        if name.lower() in _SYSTEM_FILES:
+            continue
         try:
-            size = f.stat().st_size
+            # follow_symlinks=True matches the old Path.is_file() semantics;
+            # the stat result is cached on the entry (no extra syscall).
+            if not entry.is_file():
+                continue
+            st = entry.stat()
         except OSError:
-            size = 0
+            continue
+        if _entry_is_hidden(entry, st):
+            continue
+        if mode == "date":
+            label = _date_label_from_ts(st.st_mtime)
+        else:
+            ext = os.path.splitext(name)[1].lower().lstrip(".")
+            label = category_display(rules.get(ext, "others"))
+        result.files.append(logical)
+        result.by_category[label] = result.by_category.get(label, 0) + 1
+        size = st.st_size
+        # PHASE 1.2: keep the size we already computed (single stat pass).
+        result.sizes[str(logical)] = size
         result.by_category_size[label] = result.by_category_size.get(label, 0) + size
         result.total_size += size
 

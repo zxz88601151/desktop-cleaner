@@ -15,7 +15,6 @@ from pathlib import Path
 APP_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(APP_ROOT / "src"))
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from data.database import init_db
@@ -29,9 +28,10 @@ _log = get_logger("app")
 
 def main():
     _log.info("APP START")
-    # P2-5: enable high-DPI scaling so the UI stays crisp on 4K / scaled displays.
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    # Qt 6 (PySide6): high-DPI scaling and high-DPI pixmaps are always
+    # enabled and cannot be turned off; the old Qt 5 attributes
+    # (AA_EnableHighDpiScaling / AA_UseHighDpiPixmaps) are deprecated
+    # no-ops, so they are intentionally not set anymore.
     init_db()
     reconciled = operation_repo.reconcile_pending()  # P0-1 启动恢复
     if reconciled:
