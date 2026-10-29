@@ -36,8 +36,8 @@ def main():
     database.init_db()
     app = QApplication.instance() or QApplication(sys.argv)
 
-    print("[1] both themes render a complete stylesheet")
-    for name in ("light", "dark"):
+    print("[1] all themes render a complete stylesheet")
+    for name in ("light", "dark", "glass"):
         ss = themes.build_stylesheet(name)
         bad = _TOKEN.findall(ss)
         _assert(not bad, f"{name} has no unresolved tokens ({bad[:3]})")

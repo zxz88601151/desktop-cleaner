@@ -16,6 +16,8 @@ from PySide6.QtGui import QColor
 LIGHT = {
     "name": "light",
     "bg": "#F4F6FB",
+    "bg_gradient": "#F4F6FB",
+    "sidebar_gradient": "#FFFFFF",
     "surface": "#FFFFFF",
     "surface_alt": "#F1F5F9",
     "surface_hover": "#F8FAFC",
@@ -25,6 +27,7 @@ LIGHT = {
     "text_secondary": "#475569",
     "text_muted": "#94A3B8",
     "accent": "#2B6CB0",
+    "accent2": "#2B6CB0",
     "accent_hover": "#245A94",
     "accent_pressed": "#1E4A7A",
     "accent_soft": "#EAF2FB",
@@ -47,6 +50,8 @@ LIGHT = {
 DARK = {
     "name": "dark",
     "bg": "#0B1120",
+    "bg_gradient": "#0B1120",
+    "sidebar_gradient": "#151C2C",
     "surface": "#151C2C",
     "surface_alt": "#1B2436",
     "surface_hover": "#1F2937",
@@ -56,6 +61,7 @@ DARK = {
     "text_secondary": "#AEB9CC",
     "text_muted": "#7A8699",
     "accent": "#5AA0E0",
+    "accent2": "#5AA0E0",
     "accent_hover": "#6FB0E8",
     "accent_pressed": "#4A90D5",
     "accent_soft": "#16324F",
@@ -75,9 +81,51 @@ DARK = {
     "radius_xs": "4px",
 }
 
-THEMES = {"light": LIGHT, "dark": DARK}
+GLASS = {
+    "name": "glass",
+    # SoftLib family look: steel-blue gradient backdrop, glass panels,
+    # cyan -> magenta gradient accent.
+    "bg": "#183454",
+    "bg_gradient": (
+        "qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "stop:0 #24466E, stop:0.5 #183454, stop:1 #102741)"
+    ),
+    "sidebar_gradient": (
+        "qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "stop:0 #1A3049, stop:1 #122336)"
+    ),
+    "surface": "#172D46",
+    "surface_alt": "#1C3550",
+    "surface_hover": "#223D5A",
+    "border": "#2C4460",
+    "border_strong": "#3E5A78",
+    "text": "#EFF4FA",
+    "text_secondary": "#C6D4E3",
+    "text_muted": "#93A9C0",
+    "accent": "#22D3EE",
+    "accent2": "#E879F9",
+    "accent_hover": "#4AD4F5",
+    "accent_pressed": "#17A8C9",
+    "accent_soft": "#17405A",
+    "on_accent": "#04121A",
+    "danger": "#F87171",
+    "danger_hover": "#F43F5E",
+    "danger_soft": "#3A1420",
+    "success": "#4ADE80",
+    "success_soft": "#0F2E1C",
+    "log_bg": "#05080F",
+    "log_text": "#AEB9CC",
+    "separator": "#2C4460",
+    "shadow": "rgba(0, 0, 0, 0.55)",
+    "shadow_rgba": (0, 0, 0, 140),
+    "radius": "14px",
+    "radius_sm": "10px",
+    "radius_xs": "8px",
+}
 
-DEFAULT_THEME = "light"
+THEMES = {"light": LIGHT, "dark": DARK, "glass": GLASS}
+
+DEFAULT_THEME = "glass"
 
 FONT_FAMILY = '"Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif'
 MONO_FAMILY = '"Cascadia Code", "Consolas", "Courier New", monospace'
@@ -97,6 +145,15 @@ QLabel {{
     color: {text_secondary};
     background: transparent;
 }}
+/* window-level gradient backdrop: the shell paints the gradient, the
+   topbar / page containers / scroll areas are dug out so it shows through.
+   Dig-out rules stop at the scroll content layer — cards deeper down keep
+   their own surface rules. */
+QWidget#topbar, QWidget#page-shell, QStackedWidget {{ background: transparent; }}
+QScrollArea {{ background: transparent; border: none; }}
+QScrollArea > QWidget {{ background: transparent; }}
+QScrollArea > QWidget > QWidget {{ background: transparent; }}
+QWidget#app-shell {{ background: {bg_gradient}; }}
 #title {{
     font-size: 22px;
     font-weight: 700;
@@ -155,14 +212,13 @@ QPushButton:focus {{
     outline-offset: 2px;
 }}
 QPushButton#primary {{
-    background: {accent};
-    border: 1px solid {accent};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {accent}, stop:1 {accent2});
+    border: none;
     color: {on_accent};
     font-weight: 600;
 }}
 QPushButton#primary:hover {{
-    background: {accent_hover};
-    border: 1px solid {accent_hover};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {accent_hover}, stop:1 {accent2});
 }}
 QPushButton#primary:pressed {{
     background: {accent_pressed};
@@ -335,13 +391,13 @@ QProgressBar {{
     color: {text_muted};
 }}
 QProgressBar::chunk {{
-    background: {accent};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {accent}, stop:1 {accent2});
     border-radius: {radius_xs};
 }}
 
 /* ---- dialogs ---- */
 QDialog {{
-    background: {bg};
+    background: {bg_gradient};
 }}
 #welcome-title {{ font-size: 22px; font-weight: 700; color: {text}; }}
 #welcome-sub {{ font-size: 13px; color: {text_muted}; }}
@@ -369,10 +425,10 @@ QDialog {{
 #empty-sub {{ font-size: 12px; color: {text_muted}; }}
 
 /* ---- app shell ---- */
-#sidebar {{ background: {surface}; border-right: 1px solid {border}; }}
+#sidebar {{ background: {sidebar_gradient}; border-right: 1px solid {border}; }}
 #nav-divider {{ background: {border}; max-height: 1px; margin: 4px 12px; }}
 #nav-icon {{ background: transparent; }}
-#brand-mark {{ background: {accent}; border-radius: 8px; }}
+#brand-mark {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {accent}, stop:1 {accent2}); border-radius: 8px; }}
 #sidebar-logo {{ font-size: 16px; font-weight: 700; color: {text}; }}
 #sidebar-logo-sub {{ font-size: 11px; color: {text_muted}; font-weight: 500; }}
 #nav-item {{
@@ -384,6 +440,8 @@ QDialog {{
 #nav-item[active="true"] {{
     background: {accent_soft}; color: {accent}; font-weight: 600;
 }}
+/* the active highlight already marks the nav item; a focus ring on top is noise */
+#nav-item:focus {{ outline: none; }}
 #safety {{
     background: {accent_soft}; border: 1px solid {border};
     border-radius: {radius}; padding: 16px;
@@ -458,7 +516,7 @@ QDialog {{
 #cat-row {{ background: {surface}; border: 1px solid {border}; border-radius: {radius_sm}; padding: 12px 16px; }}
 #cat-row:hover {{ border: 1px solid {accent}; }}
 #cat-bar {{ background: {accent_soft}; border-radius: 999px; min-height: 6px; max-height: 6px; }}
-#cat-bar-fill {{ background: {accent}; border-radius: 999px; }}
+#cat-bar-fill {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {accent}, stop:1 {accent2}); border-radius: 999px; }}
 #summary-line {{ font-size: 14px; color: {text}; font-weight: 600; }}
 #result-title {{ font-size: 26px; font-weight: 780; color: {text}; }}
 #result-sub {{ font-size: 14px; color: {text_secondary}; }}
@@ -484,7 +542,7 @@ QDialog {{
 #toggle-hint {{ font-size: 12px; color: {text_muted}; }}
 
 /* ---- one-click undo ---- */
-#undo-cta {{ background: {accent_soft}; color: {accent}; border: 1px solid {accent}; border-radius: 8px; font-weight: 650; }}
+#undo-cta {{ background: {accent_soft}; color: {accent}; border: 1px solid {accent}; border-radius: 8px; font-weight: 650; padding: 7px 18px; min-width: 64px; min-height: 26px; }}
 #undo-cta:hover {{ background: {accent}; color: {on_accent}; }}
 #dialog-title {{ font-size: 20px; font-weight: 760; color: {text}; }}
 #dialog-body {{ font-size: 14px; color: {text_secondary}; line-height: 1.6; }}

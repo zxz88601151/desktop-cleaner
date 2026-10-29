@@ -51,7 +51,7 @@ class ThemeManager:
 
     @property
     def is_dark(self) -> bool:
-        return self._theme == "dark"
+        return self._theme in ("dark", "glass")
 
     def shadow_color(self):
         return shadow_color(self._theme)
@@ -66,7 +66,7 @@ class ThemeManager:
         self._emit()
 
     def toggle(self) -> None:
-        self.set_theme("dark" if self._theme == "light" else "light")
+        self.set_theme("light" if self._theme in ("dark", "glass") else "glass")
 
     def on_changed(self, cb: callable) -> None:
         """Register a callback invoked after the theme changes."""

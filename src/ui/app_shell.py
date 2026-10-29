@@ -7,7 +7,7 @@ the active page so each page can refresh itself from the business layer.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -53,6 +53,9 @@ _TITLES = {
 class AppShell(QWidget):
     def __init__(self):
         super().__init__()
+        self.setObjectName("app-shell")
+        # QSS backgrounds only paint on QWidget subclasses with this flag on
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         database.init_db()
         self.setWindowTitle("桌面文件整理助手 · Desktop Cleaner")
         self.resize(1080, 760)
@@ -104,6 +107,7 @@ class AppShell(QWidget):
             "rules": RulesPage(),
         }
         for page in self._pages.values():
+            page.setObjectName("page-shell")
             self.stack.addWidget(page)
             # route navigate signals from any page back through the shell
             if hasattr(page, "navigate"):

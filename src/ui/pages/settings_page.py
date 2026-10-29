@@ -131,7 +131,7 @@ class SettingsPage(QWidget):
 
     # ---- handlers ---------------------------------------------------------- #
     def _on_theme_toggle(self, on: bool):
-        ThemeManager.instance().set_theme("dark" if on else "light")
+        ThemeManager.instance().set_theme("glass" if on else "light")
 
     def _on_theme(self):
         # reflect external theme changes (e.g. top-bar toggle)

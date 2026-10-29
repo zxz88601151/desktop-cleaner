@@ -79,7 +79,7 @@ def main():
     tm.set_theme("light")
     _assert(tm.theme == "light", "starts light")
     tm.toggle()
-    _assert(tm.theme == "dark", "toggled to dark")
+    _assert(tm.theme == "glass", "toggled to glass")
     tm.set_theme("light")
 
     print("[3] controls emit correctly")

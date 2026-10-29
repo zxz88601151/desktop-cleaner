@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -159,6 +160,7 @@ class ConfirmUndoDialog(QDialog):
         ok = box.button(QDialogButtonBox.StandardButton.Ok)
         ok.setText("还原")
         ok.setObjectName("undo-cta")
+        ok.setIcon(QIcon())  # clear the style-default icon that crowds the text
         cancel = box.button(QDialogButtonBox.StandardButton.Cancel)
         cancel.setText("取消")
         cancel.setObjectName("ghost")
