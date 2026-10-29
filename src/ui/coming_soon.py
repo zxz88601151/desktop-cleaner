@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.features import FeatureDefinition, FeatureStatus
+from ui.icons import color, pixmap
 
 
 class ComingSoonDialog(QDialog):
@@ -33,9 +34,9 @@ class ComingSoonDialog(QDialog):
         lay.setContentsMargins(24, 24, 24, 20)
         lay.setSpacing(14)
 
-        icon = QLabel(feature.icon)
+        icon = QLabel()
+        icon.setPixmap(pixmap(feature.icon, color("accent"), 40))
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon.setStyleSheet("font-size:40px;")
         lay.addWidget(icon)
 
         title = QLabel(feature.name)

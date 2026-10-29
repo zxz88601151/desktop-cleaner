@@ -115,9 +115,15 @@ class Sidebar(QWidget):
         head.setObjectName("safety-title")
         sv.addWidget(head)
         for item in ("不删除文件", "本地运行", "支持撤销"):
-            li = QLabel(f"✓ {item}")
+            row = QHBoxLayout()
+            row.setSpacing(7)
+            ck = QLabel()
+            ck.setPixmap(pixmap("check", color("success"), 13))
+            li = QLabel(item)
             li.setObjectName("safety-li")
-            sv.addWidget(li)
+            row.addWidget(ck, 0, Qt.AlignmentFlag.AlignVCenter)
+            row.addWidget(li, 1)
+            sv.addLayout(row)
         root.addWidget(safety)
 
         self._refresh_icons()

@@ -48,7 +48,7 @@ from core.custom_rules import (
     validate_extension,
 )
 from core.rules import CATEGORY_NAMES, DEFAULT_RULES, category_display
-from ui.icons import color
+from ui.icons import color, pixmap
 from ui.theme_manager import ThemeManager
 from ui.widgets.controls import ToggleSwitch
 
@@ -113,9 +113,10 @@ class RulesPage(QWidget):
         self._fingerprint.setWordWrap(True)
         cv.addWidget(self._fingerprint)
 
-        self._issues = QLabel()
-        self._issues.setObjectName("cat-ext")
-        self._issues.setWordWrap(True)
+        self._issues = QWidget()
+        self._issues_lay = QVBoxLayout(self._issues)
+        self._issues_lay.setContentsMargins(0, 0, 0, 0)
+        self._issues_lay.setSpacing(6)
         self._issues.setVisible(False)
         cv.addWidget(self._issues)
 
@@ -238,10 +239,29 @@ class RulesPage(QWidget):
 
         issues = validate_config(self._config)
         if issues:
-            lines = [
-                ("⚠ " if i.level == "warning" else "✕ ") + i.message for i in issues
-            ]
-            self._issues.setText("\n".join(lines))
+            while self._issues_lay.count():
+                w = self._issues_lay.takeAt(0).widget()
+                if w is not None:
+                    w.deleteLater()
+            for i in issues:
+                row = QHBoxLayout()
+                row.setSpacing(7)
+                ic = QLabel()
+                ic.setPixmap(
+                    pixmap(
+                        "warning" if i.level == "warning" else "error",
+                        color("danger"),
+                        14,
+                    )
+                )
+                tx = QLabel(i.message)
+                tx.setObjectName("cat-ext")
+                tx.setWordWrap(True)
+                row.addWidget(ic, 0, Qt.AlignmentFlag.AlignTop)
+                row.addWidget(tx, 1)
+                holder = QWidget()
+                holder.setLayout(row)
+                self._issues_lay.addWidget(holder)
             self._issues.setVisible(True)
         else:
             self._issues.setVisible(False)

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from data import settings_repo
+from ui.icons import color, pixmap
 
 _BULLETS = [
     ("本地运行", "文件不会上传，一切都在你的电脑上完成。"),
@@ -60,8 +61,8 @@ class WelcomeDialog(QDialog):
         for head, detail in _BULLETS:
             row = QHBoxLayout()
             row.setSpacing(10)
-            check = QLabel("✓")
-            check.setObjectName("welcome-check")
+            check = QLabel()
+            check.setPixmap(pixmap("check", color("success"), 16))
             text = QLabel(f"<b>{head}</b> — {detail}")
             text.setObjectName("welcome-bullet")
             text.setWordWrap(True)

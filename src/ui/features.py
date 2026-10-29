@@ -52,7 +52,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="FILE_CLEANER",
         name="文件整理",
-        icon="🧹",
+        icon="scan",
         description="安全、本地、一键整理桌面与下载，文件只移动、不删除、可撤销。",
         category="core",
         status=FeatureStatus.AVAILABLE,
@@ -61,7 +61,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="EYE_CARE",
         name="护眼模式",
-        icon="👁️",
+        icon="eye",
         description="降低屏幕刺激，提供更舒适的夜间使用体验。",
         category="comfort",
         status=FeatureStatus.COMING_SOON,
@@ -70,7 +70,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="QUICK_LOCK",
         name="快速锁屏",
-        icon="🔒",
+        icon="lock",
         description="一键锁定电脑，离开时更安心。",
         category="security",
         status=FeatureStatus.COMING_SOON,
@@ -79,7 +79,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="DUPLICATE_FINDER",
         name="重复文件查找",
-        icon="🔍",
+        icon="search",
         description="快速发现重复文件，帮助释放磁盘空间。",
         category="storage",
         status=FeatureStatus.COMING_SOON,
@@ -88,7 +88,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="LARGE_FILES",
         name="大文件分析",
-        icon="📦",
+        icon="archive",
         description="快速找到占用空间较大的文件。",
         category="storage",
         status=FeatureStatus.AVAILABLE,  # PHASE 1.2: shipped as an independent page
@@ -97,7 +97,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="EMPTY_FOLDER",
         name="空文件夹清理",
-        icon="🗑️",
+        icon="trash",
         description="发现长期未使用的空文件夹，让文件结构更清爽。",
         category="storage",
         status=FeatureStatus.AVAILABLE,  # V1.2-A F1: shipped as an independent page
@@ -106,7 +106,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="BATCH_RENAME",
         name="批量重命名",
-        icon="✏️",
+        icon="pencil",
         description="一次整理多个文件名称，快速建立统一命名规则。",
         category="productivity",
         status=FeatureStatus.COMING_SOON,
@@ -115,7 +115,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="QUICK_SEARCH",
         name="快速搜索",
-        icon="⚡",
+        icon="bolt",
         description="更快找到电脑中的文件和文件夹。",
         category="productivity",
         status=FeatureStatus.PLANNED,
@@ -124,7 +124,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="FOLDER_ANALYZER",
         name="文件夹分析",
-        icon="📊",
+        icon="chart",
         description="查看文件数量、类型、大小和空间占用情况。",
         category="storage",
         status=FeatureStatus.AVAILABLE,  # V1.2-A F2: shipped as an independent page
@@ -133,7 +133,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="SCHEDULED_CLEAN",
         name="定时整理",
-        icon="⏰",
+        icon="clock",
         description="按照自己的时间计划自动整理指定文件夹。",
         category="automation",
         status=FeatureStatus.PLANNED,
@@ -142,7 +142,7 @@ FEATURES: list[FeatureDefinition] = [
     FeatureDefinition(
         key="STARTUP_CLEAN",
         name="开机整理",
-        icon="🚀",
+        icon="play",
         description="启动电脑后自动检查指定目录。",
         category="automation",
         status=FeatureStatus.PLANNED,

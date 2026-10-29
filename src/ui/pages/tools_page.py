@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 
 from ui.features import FeatureStatus, get_features
 from ui.coming_soon import ComingSoonDialog
+from ui.icons import color, pixmap
 
 
 class ToolCard(QFrame):
@@ -39,8 +40,9 @@ class ToolCard(QFrame):
         lay.setSpacing(10)
 
         top = QHBoxLayout()
-        ic = QLabel(feature.icon)
+        ic = QLabel()
         ic.setObjectName("tool-icon")
+        ic.setPixmap(pixmap(feature.icon, color("accent"), 28))
         name = QLabel(feature.name)
         name.setObjectName("tool-name")
         badge = QLabel(feature.status_label)

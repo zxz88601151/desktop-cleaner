@@ -435,6 +435,29 @@ def _d_sliders(p, col):
         _fill_circle(p, knob, y, 2.2)
 
 
+@_drawer("trash")
+def _d_trash(p, col):
+    p.setPen(_pen(col))
+    p.drawLine(_pt(5, 7), _pt(19, 7))
+    p.drawLine(_pt(10, 7), _pt(10, 4))
+    p.drawLine(_pt(10, 4), _pt(14, 4))
+    p.drawLine(_pt(14, 4), _pt(14, 7))
+    _poly(p, [(7, 10), (17, 10), (16, 20), (8, 20)], close=True)
+
+
+@_drawer("pencil")
+def _d_pencil(p, col):
+    p.setPen(_pen(col))
+    _poly(p, [(4, 20), (5.5, 15.5), (16, 5), (19, 8), (8.5, 18.5)], close=True)
+    p.drawLine(_pt(14, 7), _pt(17, 10))
+
+
+@_drawer("bolt")
+def _d_bolt(p, col):
+    p.setPen(_pen(col))
+    _poly(p, [(13, 3), (6, 13), (11, 13), (10, 21), (18, 10), (13, 10)], close=True)
+
+
 # --------------------------------------------------------------------------- #
 # public API
 # --------------------------------------------------------------------------- #
