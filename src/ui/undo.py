@@ -26,6 +26,12 @@ from utils.logger import get_logger
 
 _log = get_logger("undo")
 
+#: Guards against two concurrent undos (e.g. 完成页 and 整理历史 triggered for
+#: the same record — each page only checks its *own* worker's busy state, and
+#: the history row stays ``done`` until the undo finishes, so the per-page
+#: guards cannot see each other).
+_undo_in_progress = False
+
 
 def run_undo(hid: int, on_progress=None, on_log=None) -> dict:
     """撤销一次已完成整理，严格 5 步反向顺序：
@@ -34,9 +40,20 @@ def run_undo(hid: int, on_progress=None, on_log=None) -> dict:
         -> core.execute_undo -> operation_repo.apply_undo_result (P0-2)
         -> history_repo.update_status(undone, 仅全成功) -> 清空空分类目录
     """
+    global _undo_in_progress
+    if _undo_in_progress:
+        raise ValueError("另一个还原操作正在进行中，请等待其完成后再试。")
     hist = history_repo.get(hid)
     if hist is None or hist["status"] != "done":
         raise ValueError("该记录不可撤销")
+    _undo_in_progress = True
+    try:
+        return _run_undo_locked(hid, hist, on_progress, on_log)
+    finally:
+        _undo_in_progress = False
+
+
+def _run_undo_locked(hid: int, hist, on_progress=None, on_log=None) -> dict:
     ops = operation_repo.list_by_history(hid)
     _log.info("UNDO START hid=%s files=%d", hid, len(ops))
     if on_log:
@@ -47,7 +64,12 @@ def run_undo(hid: int, on_progress=None, on_log=None) -> dict:
     # 'undone' only when the whole undo succeeded (no failures).
     failed_files = operation_repo.apply_undo_result(hid, result)
     if not failed_files:
-        history_repo.update_status(hid, "undone")
+        # The counters describe what the run originally did; an undo must not
+        # rewrite them (the history page and the dashboard cumulative stats
+        # deliberately include undone runs).
+        history_repo.update_status(
+            hid, "undone", hist["organized_files"], hist["skipped_files"]
+        )
         _remove_empty_category_dirs(Path(hist["source_path"]))
         _log.info("UNDO DONE hid=%s restored=%d", hid, result.moved)
     else:
