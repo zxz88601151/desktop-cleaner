@@ -289,6 +289,31 @@ QPushButton#icon:hover {{
 QPushButton#icon:pressed {{
     background: {surface_alt};
 }}
+/* ---- frameless window buttons ---- */
+QPushButton#win-btn {{
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 0px;
+}}
+QPushButton#win-btn:hover {{
+    background: {surface_hover};
+}}
+QPushButton#win-btn:pressed {{
+    background: {border};
+}}
+QPushButton#win-close {{
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 0px;
+}}
+QPushButton#win-close:hover {{
+    background: #E81123;
+}}
+QPushButton#win-close:pressed {{
+    background: #B52A1B;
+}}
 /* ---- inputs ---- */
 QLineEdit, QComboBox {{
     padding: 8px 10px;

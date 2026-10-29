@@ -7,7 +7,7 @@ the active page so each page can refresh itself from the business layer.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QSize, Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from data import database
 from data import settings_repo
+from ui.frameless import FramelessWindow
 from update.manager import UpdateManager
 from update.update_dialog import UpdateDialog
 from ui.about import AboutDialog
@@ -50,7 +51,7 @@ _TITLES = {
 }
 
 
-class AppShell(QWidget):
+class AppShell(FramelessWindow):
     def __init__(self):
         super().__init__()
         self.setObjectName("app-shell")
@@ -125,8 +126,8 @@ class AppShell(QWidget):
         bar = QWidget()
         bar.setObjectName("topbar")
         lay = QHBoxLayout(bar)
-        lay.setContentsMargins(28, 16, 28, 16)
-        lay.setSpacing(12)
+        lay.setContentsMargins(28, 14, 14, 14)
+        lay.setSpacing(8)
         self._title = QLabel("整理")
         self._title.setObjectName("page-title")
         lay.addWidget(self._title)
@@ -142,8 +143,47 @@ class AppShell(QWidget):
         self.about_btn.clicked.connect(lambda: AboutDialog(self).exec())
         lay.addWidget(self.about_btn)
         lay.addWidget(self.theme_btn)
+        lay.addSpacing(6)
+
+        self.min_btn = QPushButton()
+        self.min_btn.setObjectName("win-btn")
+        self.min_btn.setFixedSize(44, 34)
+        self.min_btn.setToolTip("最小化")
+        self.min_btn.clicked.connect(self.showMinimized)
+
+        self.max_btn = QPushButton()
+        self.max_btn.setObjectName("win-btn")
+        self.max_btn.setFixedSize(44, 34)
+        self.max_btn.clicked.connect(self._toggle_maximize)
+
+        self.close_btn = QPushButton()
+        self.close_btn.setObjectName("win-close")
+        self.close_btn.setFixedSize(44, 34)
+        self.close_btn.setToolTip("关闭")
+        self.close_btn.clicked.connect(self.close)
+
+        lay.addWidget(self.min_btn)
+        lay.addWidget(self.max_btn)
+        lay.addWidget(self.close_btn)
         self._update_theme_btn()
+
+        # topbar doubles as the native caption (drag / double-click / snap)
+        self.set_caption_widget(bar)
         return bar
+
+    def _toggle_maximize(self):
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+
+    def _update_window_btn_icons(self):
+        col = color("text_secondary")
+        self.min_btn.setIcon(icon("win_min", col, 16))
+        self.max_btn.setIcon(icon("win_restore" if self.isMaximized() else "win_max", col, 16))
+        self.close_btn.setIcon(icon("close", color("text"), 16))
+        for btn in (self.min_btn, self.max_btn, self.close_btn):
+            btn.setIconSize(QSize(16, 16))
 
     # ----------------------------- routing -------------------------------- #
     def _route(self, pid: str):
@@ -175,9 +215,15 @@ class AppShell(QWidget):
         dark = ThemeManager.instance().is_dark
         self.theme_btn.setIcon(icon("moon" if dark else "sun", color("text_secondary"), 18))
         self.theme_btn.setIconSize(QSize(18, 18))
+        self._update_window_btn_icons()
 
     def _on_theme(self):
         self._update_theme_btn()
+
+    def changeEvent(self, event):  # noqa: N802 - Qt override
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.WindowStateChange:
+            self._update_window_btn_icons()
 
     # ----------------------------- update --------------------------------- #
     def start_background_update_check(self):

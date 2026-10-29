@@ -458,6 +458,25 @@ def _d_bolt(p, col):
     _poly(p, [(13, 3), (6, 13), (11, 13), (10, 21), (18, 10), (13, 10)], close=True)
 
 
+@_drawer("win_min")
+def _d_win_min(p, col):
+    p.setPen(_pen(col, 1.4))
+    p.drawLine(_pt(6, 12), _pt(18, 12))
+
+
+@_drawer("win_max")
+def _d_win_max(p, col):
+    p.setPen(_pen(col, 1.4))
+    _rect(p, 5.5, 5.5, 13, 13)
+
+
+@_drawer("win_restore")
+def _d_win_restore(p, col):
+    p.setPen(_pen(col, 1.4))
+    _poly(p, [(9, 9), (9, 5), (19, 5), (19, 15), (15, 15)])
+    _rect(p, 5, 9, 10, 10)
+
+
 # --------------------------------------------------------------------------- #
 # public API
 # --------------------------------------------------------------------------- #
