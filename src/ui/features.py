@@ -100,8 +100,8 @@ FEATURES: list[FeatureDefinition] = [
         icon="🗑️",
         description="发现长期未使用的空文件夹，让文件结构更清爽。",
         category="storage",
-        status=FeatureStatus.COMING_SOON,
-        coming_soon=True,
+        status=FeatureStatus.AVAILABLE,  # V1.2-A F1: shipped as an independent page
+        coming_soon=False,
     ),
     FeatureDefinition(
         key="BATCH_RENAME",
@@ -127,8 +127,8 @@ FEATURES: list[FeatureDefinition] = [
         icon="📊",
         description="查看文件数量、类型、大小和空间占用情况。",
         category="storage",
-        status=FeatureStatus.PLANNED,
-        coming_soon=True,
+        status=FeatureStatus.AVAILABLE,  # V1.2-A F2: shipped as an independent page
+        coming_soon=False,
     ),
     FeatureDefinition(
         key="SCHEDULED_CLEAN",

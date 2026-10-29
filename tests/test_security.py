@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from core import organize, plan, scan, execute_undo  # noqa: E402
+from core.organizer import PlanItem, move_items, undo_plan  # noqa: E402
 from data import database  # noqa: E402
 from data import history_repo, operation_repo  # noqa: E402
 
@@ -186,11 +187,108 @@ def test_scanner_protection():
     _assert(raised, "scanning the app data directory raises ValueError")
 
 
+# --------------------------------------------------------------------------- #
+# P0-5: move_items must never overwrite a file that exists at the target
+# --------------------------------------------------------------------------- #
+def test_move_never_overwrites_existing_target():
+    """Audit 2026-10-16: shutil.move's copy fallback silently OVERWRITES an
+    existing destination. A file created at the planned target between the
+    preview and the execute click was destroyed and the move reported as a
+    success. The engine must record a failure instead — never lose bytes."""
+    print("[P0-5] 目标碰撞保护（移动不覆盖）")
+    root = Path(tempfile.mkdtemp(prefix="dc_sec_ow_"))
+    (root / "incoming.txt").write_bytes(b"incoming")
+    (root / "文档").mkdir()
+    victim = root / "文档" / "incoming.txt"
+    victim.write_bytes(b"ORIGINAL-PRECIOUS")  # appeared after planning
+
+    items = [
+        PlanItem(source=root / "incoming.txt", target=victim, category="文档")
+    ]
+    res = move_items(items)
+
+    _assert(res.failed == 1, "colliding move is recorded as a failure")
+    _assert(res.moved == 0, "colliding move is not reported as success")
+    _assert(
+        victim.read_bytes() == b"ORIGINAL-PRECIOUS",
+        "the file already at the target is intact",
+    )
+    _assert((root / "incoming.txt").exists(), "the source file is untouched")
+
+
+def test_copy_no_overwrite_helper():
+    """The copy fallback used by shutil.move (cross-volume moves) must also
+    refuse an existing destination — that fallback is exactly where the old
+    silent overwrite happened."""
+    print("[P0-5b] copy 回退路径不覆盖")
+    from core.organizer import _copy_no_overwrite
+
+    base = Path(tempfile.mkdtemp(prefix="dc_sec_cpy_"))
+    src = base / "src.bin"
+    src.write_bytes(b"payload")
+    dst = base / "dst.bin"
+    dst.write_bytes(b"DO-NOT-DESTROY")
+
+    raised = False
+    try:
+        _copy_no_overwrite(str(src), str(dst))
+    except FileExistsError:
+        raised = True
+    _assert(raised, "copy into an existing destination raises FileExistsError")
+    _assert(dst.read_bytes() == b"DO-NOT-DESTROY", "existing destination intact")
+
+    free = base / "free.bin"
+    _copy_no_overwrite(str(src), str(free))
+    _assert(free.read_bytes() == b"payload", "copy to a free destination works")
+
+
+# --------------------------------------------------------------------------- #
+# P0-6: undo plan reserves restore targets (two restores never collide)
+# --------------------------------------------------------------------------- #
+def test_undo_restore_collision_no_data_loss():
+    """Audit 2026-10-16: undo_plan had no `reserved` set, so two restores whose
+    original spots collide after a "(1)" rename shared one destination — the
+    second move overwrote the first and was reported as success (moved=2,
+    failed=0) while one file's content was destroyed."""
+    print("[P0-6] 撤销目标预留（双还原不碰撞）")
+    src = _make_source([])
+    (src / "x.txt").write_bytes(b"CONTENT-OF-x")
+    (src / "x (1).txt").write_bytes(b"CONTENT-OF-x1")
+
+    r = organize(src, mode="type")
+    _assert(r.moved == 2, "both files organized")
+    hid = _new_history(src, "type", 2)
+    operation_repo.bulk_insert(hid, r.items)
+    history_repo.update_status(hid, "done", 2, 0)
+
+    # The user re-creates x.txt at the original spot while the files are
+    # organized; op1's restore is renamed to "x (1).txt", colliding with op2's.
+    (src / "x.txt").write_bytes(b"USER-RECREATED")
+
+    ops = operation_repo.list_by_history(hid)
+    plan_targets = [str(i.target) for i in undo_plan(ops)]
+    _assert(len(plan_targets) == len(set(plan_targets)),
+            "undo plan hands out unique restore targets")
+
+    res = execute_undo(ops)
+    _assert(res.failed == 0, "every restore succeeds")
+    contents = sorted(p.read_bytes() for p in src.glob("*.txt"))
+    _assert(
+        contents == sorted(
+            [b"CONTENT-OF-x", b"CONTENT-OF-x1", b"USER-RECREATED"]
+        ),
+        "all three file contents survive (no silent overwrite)",
+    )
+
+
 def main():
     database.init_db()
     test_interrupt_recovery()
     test_partial_undo_no_false_success()
     test_undo_no_overwrite()
+    test_move_never_overwrites_existing_target()
+    test_copy_no_overwrite_helper()
+    test_undo_restore_collision_no_data_loss()
     test_scanner_protection()
     print("\nALL P0 SECURITY TESTS PASSED")
 

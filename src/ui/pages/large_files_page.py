@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from core import classify, scan
+from core.custom_rules import effective_rules
 from core.rules import category_display
 from core.scanner import ScanResult
 from data import settings_repo
@@ -225,7 +226,10 @@ class LargeFilesPage(QWidget):
 
     @staticmethod
     def _task_scan(root, recursive, p, l):
-        result = scan(Path(root), mode="type", recursive=recursive)
+        # V1.2-A F4: same effective-rules contract as organize / analysis, so a
+        # user rule (e.g. .dng -> 图片) is honoured here too.
+        result = scan(Path(root), mode="type", recursive=recursive,
+                      rules=effective_rules())
         l(f"扫描到 {result.total} 个文件")
         return result
 
@@ -241,9 +245,9 @@ class LargeFilesPage(QWidget):
             f"扫描完成：{result.total} 个文件 · 共 {human_size(result.total_size)}"
             f" · 展示前 {len(entries)} 个最大的文件"
         )
-        self._render_entries(entries)
+        self._render_entries(entries, effective_rules())
 
-    def _render_entries(self, entries: list[tuple[Path, int]]):
+    def _render_entries(self, entries: list[tuple[Path, int]], rules):
         self._clear_stage()
         for i, (path, size) in enumerate(entries, 1):
             row = QFrame()
@@ -271,7 +275,7 @@ class LargeFilesPage(QWidget):
 
             act = QHBoxLayout()
             act.setSpacing(10)
-            typ = QLabel(f"类型：{category_display(classify(path))}")
+            typ = QLabel(f"类型：{category_display(classify(path, rules))}")
             typ.setObjectName("tl-sub")
             reveal = QPushButton("打开位置")
             reveal.setObjectName("ghost")

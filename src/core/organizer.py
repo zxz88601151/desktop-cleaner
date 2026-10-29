@@ -25,6 +25,20 @@ _log = get_logger("organizer")
 ProgressCb = Callable[[int, int, str], None]
 
 
+def _copy_no_overwrite(src, dst, *, follow_symlinks=True):
+    """``copy_function`` for :func:`shutil.move` that refuses an existing target.
+
+    When ``os.rename`` fails (destination already present), ``shutil.move``
+    falls back to its ``copy_function`` — and the default ``copy2`` silently
+    overwrites the destination, destroying a file that appeared at the target
+    between planning and execution. Raising here turns that race into an
+    ordinary recorded failure instead of silent data loss.
+    """
+    if os.path.exists(dst):
+        raise FileExistsError(f"目标位置已存在同名文件，已跳过以免覆盖: {dst}")
+    shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+
+
 @dataclass
 class PlanItem:
     source: Path
@@ -178,7 +192,15 @@ def move_items(
             # P1-5: use the long-path-safe form for the actual move.
             src = win_long(item.source)
             tgt = win_long(item.target)
-            shutil.move(src, tgt)
+            # Last line of defence against the plan->execute gap: by the time
+            # we move, the target must still be free. shutil.move alone cannot
+            # guarantee this — os.rename overwrites on POSIX, and on Windows a
+            # failed rename silently falls back to an overwriting copy2.
+            if os.path.exists(tgt):
+                raise FileExistsError(
+                    f"目标位置已存在同名文件，已跳过以免覆盖: {item.target.name}"
+                )
+            shutil.move(src, tgt, copy_function=_copy_no_overwrite)
             if os.path.exists(tgt) and not os.path.exists(src):
                 result.moved += 1
                 result.items.append(item)
@@ -234,14 +256,23 @@ def organize(
 
 
 def undo_plan(operations: List[dict]) -> List[PlanItem]:
-    """Build a plan that moves previously-moved files back to their origin."""
+    """Build a plan that moves previously-moved files back to their origin.
+
+    Restore targets are reserved the same way :func:`plan` reserves them: two
+    operations may not share one restore destination. Without the reservation,
+    a user-recreated file at an original location makes ``_unique_target``
+    hand out the same ``name (1).ext`` path to two different restores; the
+    second move then overwrites the first (silently reported as success).
+    """
     items: List[PlanItem] = []
+    reserved: set = set()
     for op in operations:
         if op.get("status") != "moved":
             continue
         source = Path(op["target_path"])
         # P0-3: collision-safe restore target (never overwrite an existing file)
-        target = _unique_target(Path(op["source_path"]))
+        target = _unique_target(Path(op["source_path"]), reserved)
+        reserved.add(str(target))
         items.append(PlanItem(source=source, target=target, category=op["category"]))
     return items
 

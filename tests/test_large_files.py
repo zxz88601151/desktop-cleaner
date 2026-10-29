@@ -174,6 +174,44 @@ def test_page_construction():
     assert page._source is not None
 
 
+# --------------------------------------------------------------------------- #
+# 11. custom rules are honoured (audit 2026-10-16)
+# --------------------------------------------------------------------------- #
+def test_large_files_uses_effective_rules():
+    """The page classified with the raw DEFAULT rules while organize/analysis
+    use the effective ones — a user rule (e.g. .dng -> 图片) was silently
+    ignored in the scan grouping and in the per-row type label."""
+    from PySide6.QtWidgets import QLabel
+
+    from core.custom_rules import (
+        RuleConfig,
+        UserRule,
+        effective_rules,
+        reset_config,
+        save_config,
+    )
+
+    save_config(RuleConfig(user_rules=[UserRule(extension="dng", category="images")]))
+    try:
+        src = _make_tree({"photo.dng": 100})
+
+        page = LargeFilesPage()
+        result = LargeFilesPage._task_scan(str(src), False, None, lambda *_: None)
+        assert result.by_category.get("图片") == 1, (
+            f"scan grouping must honour effective rules, got {result.by_category}"
+        )
+
+        entries = collect_large_files(result, TOP_N)
+        page._render_entries(entries, effective_rules())
+        labels = [
+            lb.text() for lb in page.findChildren(QLabel)
+            if lb.text().startswith("类型：")
+        ]
+        assert labels == ["类型：图片"], f"row label must use effective rules, got {labels}"
+    finally:
+        reset_config()
+
+
 def test_navigation_registration(monkeypatch):
     import ui.app_shell as shell_mod
     from ui.app_shell import AppShell
