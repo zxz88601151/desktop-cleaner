@@ -40,3 +40,6 @@ venv/
 # AI assistant session / workspace memory. Holds conversation state and local
 # notes -- must never be published. (Previously only untracked by luck.)
 .workbuddy-ai/
+# Current assistant's workspace data dir (same rationale; the older tooling
+# used the .workbuddy-ai/ name above).
+.workbuddy/
