@@ -168,11 +168,30 @@ def test_log_format_has_module():
     _assert("organizer" in out, "rendered line contains the module name")
 
 
+# --------------------------------------------------------------------------- #
+# T5: one shared rotating handler (audit 2026-10-16)
+# --------------------------------------------------------------------------- #
+def test_log_single_shared_rotating_handler():
+    print("[audit T5] single shared RotatingFileHandler across loggers")
+    from logging.handlers import RotatingFileHandler
+
+    names = ["organizer", "scanner", "undo", "worker", "p2_t5_probe"]
+    loggers = [get_logger(n) for n in names]
+    handlers = {id(lg.handlers[0]) for lg in loggers if lg.handlers}
+    _assert(len(handlers) == 1, "every named logger shares ONE file handler")
+    fh = loggers[0].handlers[0]
+    _assert(isinstance(fh, RotatingFileHandler),
+            "the shared handler rotates (log cannot grow without bound)")
+    _assert(fh.maxBytes > 0 and fh.backupCount > 0,
+            "rotation limits are configured")
+
+
 def main():
     test_missing_source_recorded_failed()
     test_legacy_db_wal_upgrade()
     test_reconcile_running_history()
     test_log_format_has_module()
+    test_log_single_shared_rotating_handler()
     print("\nALL P2 COVERAGE TESTS PASSED")
 
 
