@@ -24,12 +24,14 @@ from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTableWidget, Q
 
 from core import plan, summarize_plan  # noqa: E402
 from ui.preview_report import PreviewReportDialog  # noqa: E402
+from _cleanup import cleanup_home  # noqa: E402
 
 app = QApplication.instance() or QApplication(sys.argv)
 
 
 def _make_source() -> Path:
-    src = Path(tempfile.mkdtemp(prefix="dc_src_"))
+    # Inside the module sandbox so it is removed together with it.
+    src = Path(tempfile.mkdtemp(prefix="dc_src_", dir=_TMP_HOME))
     files = {
         "photo.jpg": b"img",
         "logo.png": b"img",
@@ -95,6 +97,4 @@ if __name__ == "__main__":
     try:
         main()
     finally:
-        import shutil
-
-        shutil.rmtree(_TMP_HOME, ignore_errors=True)
+        cleanup_home(_TMP_HOME)

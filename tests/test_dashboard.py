@@ -8,7 +8,6 @@ Run:  PYTHONPATH=src QT_QPA_PLATFORM=offscreen python tests/test_dashboard.py
 import os
 import sys
 import tempfile
-import shutil
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 _TMP_HOME = tempfile.mkdtemp(prefix="dc_test_dash_")
@@ -21,6 +20,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from data import database, history_repo  # noqa: E402
 from ui.dashboard import DashboardWidget  # noqa: E402
+from _cleanup import cleanup_home  # noqa: E402
 
 app = QApplication.instance() or QApplication(sys.argv)
 
@@ -68,4 +68,4 @@ if __name__ == "__main__":
     try:
         main()
     finally:
-        shutil.rmtree(_TMP_HOME, ignore_errors=True)
+        cleanup_home(_TMP_HOME)

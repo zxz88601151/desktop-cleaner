@@ -13,7 +13,6 @@ Run:  PYTHONPATH=src QT_QPA_PLATFORM=offscreen python tests/test_appshell.py
 import os
 import sys
 import tempfile
-import shutil
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -33,6 +32,7 @@ from ui.pages.dashboard_page import DashboardPage  # noqa: E402
 from ui.undo import ConfirmUndoDialog, run_undo  # noqa: E402
 from ui.widgets.controls import Segmented, ToggleSwitch  # noqa: E402
 from ui.theme_manager import ThemeManager  # noqa: E402
+from _cleanup import cleanup_home  # noqa: E402
 
 
 def _assert(cond, msg):
@@ -46,7 +46,9 @@ def _no_op(*_a):
 
 
 def _make_source() -> str:
-    src = tempfile.mkdtemp(prefix="dc_src_")
+    # Keep the fixture inside the module sandbox so it is removed with it
+    # (a bare mkdtemp() would land in the real %TEMP% and leak forever).
+    src = tempfile.mkdtemp(prefix="dc_src_", dir=_TMP_HOME)
     for name, content in {
         "photo.jpg": b"img", "logo.png": b"img", "report.pdf": b"doc",
         "clip.mp4": b"vid", "song.mp3": b"aud", "archive.zip": b"zip",
@@ -141,4 +143,4 @@ if __name__ == "__main__":
     try:
         main()
     finally:
-        shutil.rmtree(_TMP_HOME, ignore_errors=True)
+        cleanup_home(_TMP_HOME)

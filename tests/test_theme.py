@@ -8,7 +8,6 @@ import os
 import re
 import sys
 import tempfile
-import shutil
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 _TMP_HOME = tempfile.mkdtemp(prefix="dc_test_theme_")
@@ -22,6 +21,7 @@ from PySide6.QtWidgets import QApplication, QPushButton, QLabel  # noqa: E402
 from data import database  # noqa: E402
 from data import settings_repo  # noqa: E402
 from ui import themes, theme_manager  # noqa: E402
+from _cleanup import cleanup_home  # noqa: E402
 
 _TOKEN = re.compile(r"\{\{|\}\}|\{[a-zA-Z_][a-zA-Z0-9_]*\}")
 
@@ -69,7 +69,7 @@ def main():
     _assert(len(d1.findChildren(QLabel, "welcome-bullet")) == 6, "welcome has 6 bullets")
     _assert(any(b.text() == "开始使用" for b in d1.findChildren(QPushButton)), "welcome 开始使用")
 
-    src = Path(tempfile.mkdtemp())
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME))
     for n in ("a.jpg", "b.pdf", "c.mp4"):
         (src / n).write_bytes(b"x")
     rep = summarize_plan(plan(src, mode="type"), str(src))
@@ -84,4 +84,4 @@ if __name__ == "__main__":
     try:
         main()
     finally:
-        shutil.rmtree(_TMP_HOME, ignore_errors=True)
+        cleanup_home(_TMP_HOME)
