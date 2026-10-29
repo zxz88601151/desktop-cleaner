@@ -50,7 +50,11 @@ def parse_manifest(text: str) -> dict:
 
     notes = data.get("release_notes")
     if notes is not None and not isinstance(notes, list):
-        notes = [str(notes)]
+        notes = [notes]
+    if isinstance(notes, list):
+        # Every item becomes a str: the update dialog joins them, which would
+        # raise TypeError on a remote manifest like {"release_notes": [1, 2]}.
+        notes = [str(item) for item in notes]
 
     return {
         "schema_version": data.get("schema_version", 1),

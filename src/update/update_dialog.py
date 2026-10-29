@@ -59,6 +59,11 @@ class UpdateDialog(QDialog):
             body = QLabel("• " + "\n• ".join(notes))
             body.setObjectName("dialog-body")
             body.setWordWrap(True)
+            # Remote manifest content must never be parsed as rich text:
+            # QLabel defaults to AutoText, so markup-looking notes would render
+            # as HTML (an <img src=http://…> note would silently fetch remote
+            # content from the user's machine).
+            body.setTextFormat(Qt.PlainText)
             root.addWidget(body)
 
         if self._forced:

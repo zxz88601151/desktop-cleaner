@@ -247,6 +247,9 @@ def test_manager():
     init_db()
 
     fake_ok = {
+        # The manager fail-closes on a manifest whose product is not ours
+        # (same contract as the About dialog), so fixtures must identify it.
+        "product": "DesktopCleaner",
         "latest_version": "1.1.1",
         "minimum_supported_version": "1.1.0",
         "release_notes": ["bug fixes"],
@@ -353,6 +356,152 @@ def test_manifest_basics():
     _assert(validate_manifest_basics("not a dict") is not None, "non-dict rejected")
 
 
+def test_manifest_notes_coercion():
+    """Audit 2026-10-16: a remote notes LIST of non-strings reached the update
+    dialog's "\n".join() and raised TypeError, killing the update prompt."""
+    print("[manifest_notes_coercion]")
+    m = parse_manifest(json.dumps({
+        "latest_version": "1.2.0",
+        "release_notes": [1, None, {"a": 1}, "real note"],
+    }))
+    _assert(m["release_notes"] == ["1", "None", "{'a': 1}", "real note"],
+            "every note item is coerced to str")
+    m2 = parse_manifest(json.dumps({
+        "latest_version": "1.2.0", "release_notes": "single line",
+    }))
+    _assert(m2["release_notes"] == ["single line"], "scalar notes stay a list")
+    m3 = parse_manifest(json.dumps({"latest_version": "1.2.0"}))
+    _assert(m3["release_notes"] == [], "missing notes -> empty list")
+
+
+# --------------------------------------------------------------------------- #
+# Manager hardening (audit 2026-10-16)
+# --------------------------------------------------------------------------- #
+def test_manager_rejects_foreign_manifest():
+    """The manager path must enforce the same fail-closed basics validation as
+    the About dialog: a manifest whose product is not ours never reaches the
+    update dialog as a 'new version'."""
+    print("[manager_rejects_foreign_manifest]")
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import QEventLoop, QTimer
+
+    import update.manager as mgr_mod
+
+    QApplication.instance() or QApplication(sys.argv + ["-platform", "offscreen"])
+    init_db()
+
+    real_fetch = mgr_mod.fetch_manifest
+    mgr_mod.fetch_manifest = lambda *a, **k: {
+        "product": "OtherApp", "latest_version": "99.0.0",
+        "release_notes": ["<img src=http://attacker/x>"],
+    }
+
+    def pump(timeout_ms=1000):
+        loop = QEventLoop()
+        QTimer.singleShot(timeout_ms, loop.quit)
+        loop.exec()
+
+    got = {}
+    mgr = mgr_mod.UpdateManager("1.1.0")
+    mgr.update_available.connect(lambda mf: got.setdefault("avail", mf))
+    mgr.check_failed.connect(lambda: got.setdefault("failed", True))
+    mgr.start_check(force=True)
+    pump()
+    mgr_mod.fetch_manifest = real_fetch
+
+    _assert("failed" in got, "foreign product -> check_failed (fail-closed)")
+    _assert("avail" not in got, "foreign product -> NO update_available")
+    _assert(mgr._should_check() is True,
+            "invalid manifest does not consume the 24h throttle")
+
+
+def test_manager_single_check_in_flight():
+    """A second start_check while one is in flight must neither emit a
+    throttled no_update over the pending result (the settings page would show
+    "已是最新" for an unfinished forced check) nor stack a second worker."""
+    print("[manager_single_check_in_flight]")
+    from datetime import datetime
+
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import QEventLoop, QTimer
+    from data import settings_repo
+
+    import update.manager as mgr_mod
+
+    QApplication.instance() or QApplication(sys.argv + ["-platform", "offscreen"])
+    init_db()
+
+    real_fetch = mgr_mod.fetch_manifest
+    fake_ok = {
+        "product": "DesktopCleaner",
+        "latest_version": "1.1.1",
+        "minimum_supported_version": "1.1.0",
+        "release_notes": ["bug fixes"],
+    }
+    mgr_mod.fetch_manifest = lambda *a, **k: fake_ok
+
+    def pump(timeout_ms=1000):
+        loop = QEventLoop()
+        QTimer.singleShot(timeout_ms, loop.quit)
+        loop.exec()
+
+    # shape 1: forced + forced -> exactly ONE result, one worker
+    got = {"none": 0}
+    mgr = mgr_mod.UpdateManager("1.1.1")
+    mgr.no_update.connect(lambda: got.__setitem__("none", got["none"] + 1))
+    mgr.start_check(force=True)
+    mgr.start_check(force=True)  # must be a no-op while the first is in flight
+    pump()
+    _assert(got["none"] == 1, "double start_check emits exactly one result")
+
+    # shape 2: forced + throttled -> the throttle must NOT report "已是最新"
+    # while the forced check is still in flight
+    got2 = {"none": 0}
+    settings_repo.set("last_update_check", datetime.now().isoformat())  # throttled
+    mgr2 = mgr_mod.UpdateManager("1.1.1")
+    mgr2.no_update.connect(lambda: got2.__setitem__("none", got2["none"] + 1))
+    mgr2.start_check(force=True)    # bypasses throttle, starts the fetch
+    mgr2.start_check(force=False)   # throttled, but a check is in flight
+    pump()
+    _assert(got2["none"] == 1,
+            "throttled no_update suppressed while a forced check is in flight")
+
+    # after everything settled, a plain throttled check reports again
+    mgr2.start_check(force=False)
+    _assert(got2["none"] == 2, "throttled no_update works again once settled")
+
+    mgr_mod.fetch_manifest = real_fetch
+    settings_repo.set("last_update_check", "")
+
+
+def test_update_dialog_plain_text_notes():
+    """Remote release notes must never be parsed as rich text (QLabel defaults
+    to AutoText; an <img src=http://…> note would fetch remote content)."""
+    print("[update_dialog_plain_text_notes]")
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication, QLabel
+
+    from update.update_dialog import UpdateDialog
+
+    QApplication.instance() or QApplication(sys.argv + ["-platform", "offscreen"])
+
+    manifest = {
+        "product": "DesktopCleaner",
+        "latest_version": "9.9.9",
+        "release_notes": ["<img src=http://attacker/x>"],
+        "download_url": "https://update.ycqinnan.cn/x.exe",
+    }
+    dlg = UpdateDialog(manifest, "1.1.0")
+    bodies = [
+        lb for lb in dlg.findChildren(QLabel)
+        if lb.text().startswith("• ")
+    ]
+    _assert(len(bodies) == 1, "notes body label present")
+    _assert(bodies[0].textFormat() == Qt.PlainText,
+            "notes label is PlainText (no HTML from remote data)")
+    _assert("<img" in bodies[0].text(), "raw note text preserved")
+
+
 if __name__ == "__main__":
     test_version()
     test_manifest()
@@ -361,5 +510,9 @@ if __name__ == "__main__":
     test_decision()
     test_download_url_security()
     test_manifest_basics()
+    test_manifest_notes_coercion()
     test_manager()
+    test_manager_rejects_foreign_manifest()
+    test_manager_single_check_in_flight()
+    test_update_dialog_plain_text_notes()
     print("\nALL AR-2 UPDATE TESTS PASSED (pure + manager, no real network)")

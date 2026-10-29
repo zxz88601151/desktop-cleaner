@@ -24,7 +24,7 @@ from PySide6.QtCore import QObject, QThread, Signal
 from data import settings_repo
 
 from .checker import fetch_manifest
-from .constants import UPDATE_CHECK_INTERVAL_HOURS
+from .constants import UPDATE_CHECK_INTERVAL_HOURS, validate_manifest_basics
 from .decision import LEVEL_NONE, evaluate
 
 _LAST_CHECK_KEY = "last_update_check"
@@ -48,6 +48,7 @@ class UpdateManager(QObject):
         super().__init__(parent)
         self._current = current_version
         self._worker: _CheckWorker | None = None
+        self._check_in_flight = False
 
     # -- throttle ---------------------------------------------------------- #
     def _should_check(self) -> bool:
@@ -73,22 +74,44 @@ class UpdateManager(QObject):
         NOTE: the throttle is *not* consumed here — only a successful fetch marks
         the window (see :meth:`_on_result`), so a failed check can retry next launch.
         """
+        # One check at a time. A second start_check while one is in flight
+        # would either emit a throttled `no_update` over a still-pending
+        # *forced* check (the settings page would then report "已是最新" for a
+        # check that has not finished), or drop a second _CheckWorker onto a
+        # still-running one (QThread destroyed while running).
+        if self._check_in_flight:
+            return
         if not force and not self._should_check():
             # Throttled: nothing to report, and nothing failed.
             self.no_update.emit()
             return
+        self._check_in_flight = True
         self._worker = _CheckWorker()
         self._worker.got.connect(self._on_result)
+        # Belt and braces: if run() ever dies before emitting `got`, the flag
+        # must still reset so future checks are possible.
+        self._worker.finished.connect(self._clear_in_flight)
         # Free the thread object once it finishes (avoids accumulating QThreads).
         self._worker.finished.connect(self._worker.deleteLater)
         self._worker.start()
 
+    def _clear_in_flight(self):
+        self._check_in_flight = False
+
     def _on_result(self, manifest):
+        self._check_in_flight = False
         if not manifest:
             # Fetch or parse failed (offline / timeout / TLS / malformed JSON).
             # This is NOT "up to date" — report it on its own signal so the UI
             # never shows a false "已是最新", and leave the throttle window open
             # so the next launch retries.
+            self.check_failed.emit()
+            return
+        if validate_manifest_basics(manifest) is not None:
+            # Same fail-closed contract as the About dialog: a manifest that is
+            # not provably ours (wrong product / malformed version) must never
+            # reach the update dialog as a "new version". Not counted against
+            # the throttle, so a corrected manifest is picked up next launch.
             self.check_failed.emit()
             return
         # Only a successful fetch counts against the 24h throttle.
