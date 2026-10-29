@@ -5,7 +5,7 @@ import datetime
 from pathlib import Path
 from typing import List, Set
 
-from .database import get_connection
+from .database import connection
 from core.organizer import OrganizeResult, PlanItem
 
 
@@ -15,7 +15,7 @@ def bulk_insert(hid: int, items: List[PlanItem]) -> None:
         (hid, str(it.source), str(it.target), it.source.name, it.category, "moved", now)
         for it in items
     ]
-    with get_connection() as conn:
+    with connection() as conn:
         conn.executemany(
             "INSERT INTO operations(history_id, source_path, target_path, file_name, "
             "category, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -34,7 +34,7 @@ def bulk_insert_pending(hid: int, items: List[PlanItem]) -> None:
         (hid, str(it.source), str(it.target), it.source.name, it.category, "pending", now)
         for it in items
     ]
-    with get_connection() as conn:
+    with connection() as conn:
         conn.executemany(
             "INSERT INTO operations(history_id, source_path, target_path, file_name, "
             "category, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -50,7 +50,7 @@ def update_statuses_by_target(
     Keys are ``target_path`` values produced by :func:`core.organizer.plan`,
     which are identical to those inserted by :func:`bulk_insert_pending`.
     """
-    with get_connection() as conn:
+    with connection() as conn:
         conn.executemany(
             "UPDATE operations SET status='moved' WHERE history_id=? AND target_path=?",
             [(hid, t) for t in moved_targets],
@@ -68,17 +68,23 @@ def apply_undo_result(hid: int, result: OrganizeResult) -> List[str]:
     keep their ``moved`` status so the user can retry later. Returns the list
     of failure messages (empty when the undo was fully successful).
 
+    The undo plan takes each operation's ``target_path`` as the move *source*,
+    so successful undo items are matched back to operations by that field.
+    Matching by ``source_path`` (the restore destination) would miss every op
+    whose restore was renamed by ``_unique_target`` because the original spot
+    was occupied — such an op stayed ``moved`` under an ``undone`` history.
+
     P1-2: the status writes are collected and applied in a single
     ``executemany`` instead of one ``execute`` per operation.
     """
-    restored = {str(it.target) for it in result.items}
+    restored_sources = {str(it.source) for it in result.items}
     undone_ids: List[int] = []
-    with get_connection() as conn:
+    with connection() as conn:
         rows = conn.execute(
             "SELECT * FROM operations WHERE history_id=?", (hid,)
         ).fetchall()
         for op in rows:
-            if op["source_path"] in restored:
+            if op["target_path"] in restored_sources:
                 undone_ids.append(op["id"])
         if undone_ids:
             conn.executemany(
@@ -100,7 +106,7 @@ def reconcile_pending() -> int:
     the moved files remain undoable. Returns the number of ops reconciled.
     """
     settled = 0
-    with get_connection() as conn:
+    with connection() as conn:
         rows = conn.execute(
             "SELECT * FROM operations WHERE status='pending'"
         ).fetchall()
@@ -143,7 +149,7 @@ def reconcile_pending() -> int:
 
 
 def list_by_history(hid: int) -> List[dict]:
-    with get_connection() as conn:
+    with connection() as conn:
         rows = conn.execute(
             "SELECT * FROM operations WHERE history_id = ? ORDER BY id", (hid,)
         ).fetchall()
@@ -151,7 +157,7 @@ def list_by_history(hid: int) -> List[dict]:
 
 
 def update_status(op_id: int, status: str) -> None:
-    with get_connection() as conn:
+    with connection() as conn:
         conn.execute(
             "UPDATE operations SET status = ? WHERE id = ?", (status, op_id)
         )

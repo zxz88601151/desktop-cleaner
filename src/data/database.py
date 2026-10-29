@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 # Resolve the data directory:
@@ -112,6 +113,56 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
+@contextmanager
+def connection():
+    """Yield a connection that is committed, rolled back, and always closed.
+
+    ``get_connection()`` returns a bare :class:`sqlite3.Connection`. Using it as
+    ``with get_connection() as conn:`` invokes the *transaction* context
+    manager, which commits on success and rolls back on exception but **never
+    closes** the connection. Every such call therefore leaked a handle until the
+    garbage collector happened to reclaim it: a connection that has executed a
+    statement participates in a reference cycle, so refcounting alone never
+    frees it.
+
+    This context manager keeps the transaction semantics exactly as they were
+    and adds a deterministic ``close()`` on both the normal and the exceptional
+    path.
+
+    ``get_connection()`` itself is deliberately left unchanged: callers that
+    want to drive a connection manually still receive an open raw connection
+    that only they close.
+
+    A failure while closing never replaces an error that is already propagating
+    out of the block; with nothing else in flight it is raised loudly instead.
+    """
+    conn = get_connection()
+    # Set as soon as *anything* fails inside the block — the body, or the
+    # transaction commit performed on the way out. This is tracked explicitly
+    # rather than via ``sys.exc_info()``: that reports whatever handler is
+    # active on the *call stack*, so entering this context manager from inside
+    # an ``except`` block would make it non-None even on a clean exit, and a
+    # close failure would be swallowed silently.
+    failed = False
+    try:
+        with conn:
+            yield conn
+    except BaseException:
+        failed = True
+        raise
+    finally:
+        # A close failure must never replace an error that is already
+        # propagating — the application error is the useful one. With nothing
+        # else in flight, a close failure is raised loudly instead.
+        try:
+            conn.close()
+        except Exception:
+            if not failed:
+                raise
+
+
 def init_db() -> None:
-    with get_connection() as conn:
+    # `executescript` commits eagerly, so the schema is persisted even if a
+    # later statement inside the block were to raise.
+    with connection() as conn:
         conn.executescript(_SCHEMA)
