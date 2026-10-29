@@ -27,7 +27,7 @@ hiddenimports = [
     "ui.pages.analysis_page",
     "ui.pages.rules_page",
     "ui.pages.tools_page",
-    "ui.undo", "ui.app_shell", "ui.coming_soon", "ui.features",
+    "ui.undo", "ui.app_shell", "ui.frameless", "ui.coming_soon", "ui.features",
     "ui.icons",
     "version",
     "update", "update.version", "update.constants", "update.manifest",
