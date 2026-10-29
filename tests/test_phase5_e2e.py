@@ -28,12 +28,47 @@ from core.organizer import PlanItem  # noqa: E402
 from data import database, history_repo, operation_repo  # noqa: E402
 from utils.paths import win_long  # noqa: E402
 from utils.errors import friendly_message  # noqa: E402
+from _cleanup import cleanup_home  # noqa: E402
+
+
+# Tri-state result tracking: PASSED / SKIPPED / FAILED are reported separately
+# so a known limitation can never be dressed up as a pass.
+_PASSED = 0
+_SKIPPED: list[str] = []
+_FAILED = 0
 
 
 def _assert(cond, msg):
+    global _PASSED, _FAILED
     if not cond:
+        _FAILED += 1
         raise AssertionError("FAIL: " + msg)
+    _PASSED += 1
     print("  ok:", msg)
+
+
+def _skip(reason: str) -> None:
+    """Record an explicitly-allowed, provable limitation.
+
+    Only used when the exact, documented Phase-4 limit is demonstrably hit.
+    A skip is reported in the summary and never counted as a pass.
+    """
+    _SKIPPED.append(reason)
+    print("  SKIP:", reason)
+
+
+def _summary(completed: bool) -> None:
+    """Print PASSED / SKIPPED / FAILED. Never claims more than was proven."""
+    global _FAILED
+    failed = _FAILED
+    if not completed and failed == 0:
+        # main() died outside _assert (unexpected exception) -> still a failure.
+        failed = 1
+    print(
+        f"\n=== SUMMARY: PASSED={_PASSED} SKIPPED={len(_SKIPPED)} FAILED={failed} ==="
+    )
+    for reason in _SKIPPED:
+        print(f"  SKIPPED: {reason}")
 
 
 def _new_hist(src, mode, total):
@@ -54,10 +89,15 @@ def _organize_flow(src, mode="type", recursive=False):
 
 
 def _undo_flow(hid):
+    """Mirror ui.undo.run_undo (5-step) — incl. preserving the run counters."""
     ops = operation_repo.list_by_history(hid)
+    hist = history_repo.get(hid)
     result = execute_undo(ops)
     failed = operation_repo.apply_undo_result(hid, result)
-    history_repo.update_status(hid, "undone" if not failed else "done", 0, 0)
+    if not failed:
+        history_repo.update_status(
+            hid, "undone", hist["organized_files"], hist["skipped_files"]
+        )
     return result, failed
 
 
@@ -71,7 +111,7 @@ def _touch(p: Path, content=b"x"):
 # --------------------------------------------------------------------------- #
 def t01_normal_organize():
     print("[测试一] 普通整理 (type)")
-    src = Path(tempfile.mkdtemp(prefix="p5_normal_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_normal_"))
     for n in ["a.jpg", "b.pdf", "c.mp3", "d.zip", "e.py"]:
         _touch(src / n)
     hid, r = _organize_flow(src, "type")
@@ -87,7 +127,7 @@ def t01_normal_organize():
 # --------------------------------------------------------------------------- #
 def t02_undo():
     print("[测试二] Undo")
-    src = Path(tempfile.mkdtemp(prefix="p5_undo_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_undo_"))
     for n in ["a.jpg", "b.pdf"]:
         _touch(src / n)
     hid, r = _organize_flow(src, "type")
@@ -105,7 +145,7 @@ def t02_undo():
 # --------------------------------------------------------------------------- #
 def t03_collision():
     print("[测试三] 文件名冲突")
-    src = Path(tempfile.mkdtemp(prefix="p5_collide_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_collide_"))
     _touch(src / "a.jpg")
     (src / "图片").mkdir()
     _touch(src / "图片" / "a.jpg", b"existing")
@@ -120,7 +160,7 @@ def t03_collision():
 # --------------------------------------------------------------------------- #
 def t04_chinese_path():
     print("[测试四] 中文路径")
-    base = Path(tempfile.mkdtemp(prefix="p5_cn_"))
+    base = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_cn_"))
     src = base / "中文测试" / "生日照片"
     _touch(src / "全家福.jpg")
     _touch(src / "贺卡.png")
@@ -136,7 +176,7 @@ def t04_chinese_path():
 # --------------------------------------------------------------------------- #
 def t05_space_path():
     print("[测试五] 空格路径")
-    base = Path(tempfile.mkdtemp(prefix="p5_sp_"))
+    base = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_sp_"))
     src = base / "Test Folder" / "My Files"
     _touch(src / "holiday photo.jpg")
     _touch(src / "notes.pdf")
@@ -155,9 +195,9 @@ def t06_deep_path():
     seg = "deep" * 20  # 80 chars segment
     parts = [seg, seg, seg, seg]  # 320 chars of nested dirs
     # (a) Move/Undo ENGINE on a >260 target path (move_items applies win_long internally).
-    src = Path(tempfile.mkdtemp(prefix="p5_deep_src_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_deep_src_"))
     _touch(src / "deepfile.jpg")
-    deep_target = Path(tempfile.gettempdir()) / "p5_deep" / Path(*parts) / "图片" / "deepfile.jpg"
+    deep_target = Path(_TMP_HOME) / "p5_deep" / Path(*parts) / "图片" / "deepfile.jpg"
     item = PlanItem(source=src / "deepfile.jpg", target=deep_target, category="图片")
     r = move_items([item])
     _assert(r.moved == 1, f"deep-target file moved (got {r.moved})")
@@ -168,20 +208,31 @@ def t06_deep_path():
     r2 = move_items([back])
     _assert(r2.moved == 1, "deep-path undo moved back")
     _assert((src / "deepfile.jpg").exists(), "file restored from deep path")
-    # (b) Scanner auto-discovery of a >260 deep TREE (known Phase-4 limit).
-    scan_src = Path(tempfile.gettempdir()) / "p5_scan_deep" / Path(*parts)
+    # (b) Scanner auto-discovery of a >260 deep TREE.
+    scan_src = Path(_TMP_HOME) / "p5_scan_deep" / Path(*parts)
     _touch(scan_src / "autofind.jpg")
+    from core import scan
+
+    root_len = len(str(scan_src))
     try:
-        from core import scan
         res = scan(scan_src, mode="type")
-        if res.total >= 1:
-            print(f"  ok: scanner discovered >260 file (total={res.total})")
+    except OSError as exc:
+        # SKIP is allowed ONLY for the documented Phase-4 limit, and only when
+        # we can actually prove it: the root really is >260 chars AND Windows
+        # reported a path-level error (3 = PATH_NOT_FOUND, 206 = EXCED_RANGE).
+        err = getattr(exc, "winerror", None) or getattr(exc, "errno", None)
+        if root_len > 260 and err in (3, 206):
+            _skip(
+                f"scanner cannot open a >260 root (len={root_len}, "
+                f"{type(exc).__name__}/{err}) — documented Phase-4 limit; "
+                "the move/undo engine on >260 targets is verified above"
+            )
         else:
-            print("  CONDITIONAL: scanner rglob did not auto-discover >260 deep tree "
-                  "(matches Phase-4 known limit; move/undo engine verified above)")
-    except Exception as e:  # noqa: BLE001
-        print(f"  CONDITIONAL: scanner raised on >260 root ({type(e).__name__}); "
-              f"move/undo engine verified above (matches Phase-4 known limit)")
+            raise  # unexpected failure must not be disguised as a skip
+    else:
+        # On this platform the scanner is expected to discover it; a 0 result
+        # is an unexpected wrong result, not a tolerable limitation.
+        _assert(res.total >= 1, f"scanner discovered >260 deep file (total={res.total})")
 
 
 # --------------------------------------------------------------------------- #
@@ -190,7 +241,7 @@ def t06_deep_path():
 def t07_system_files():
     print("[测试七] 系统文件保护")
     from core import scan
-    src = Path(tempfile.mkdtemp(prefix="p5_sys_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_sys_"))
     _touch(src / "photo.jpg")
     _touch(src / "desktop.ini")
     _touch(src / "thumbs.db")
@@ -232,7 +283,7 @@ def t08_app_data_dir():
 # --------------------------------------------------------------------------- #
 def t09_interrupt_recovery():
     print("[测试九] 中断恢复 (pending + reconcile)")
-    src = Path(tempfile.mkdtemp(prefix="p5_intr_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_intr_"))
     for n in ["a.jpg", "b.jpg", "c.pdf"]:
         _touch(src / n)
     items = plan(src, "type")
@@ -256,7 +307,7 @@ def t09_interrupt_recovery():
 # --------------------------------------------------------------------------- #
 def t10_partial_undo_fail():
     print("[测试十] 部分 Undo 失败")
-    src = Path(tempfile.mkdtemp(prefix="p5_pund_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_pund_"))
     for n in ["a.jpg", "b.jpg", "c.pdf"]:
         _touch(src / n)
     hid, r = _organize_flow(src, "type")
@@ -282,16 +333,29 @@ def t11_permission_error():
     _assert("权限" in friendly_message(PermissionError("denied")), "PermissionError -> 权限提示")
     _assert("找不到" in friendly_message(FileNotFoundError("missing")), "FileNotFound -> 找不到")
     # move_items must record failure, not crash, when a source is gone.
-    src = Path(tempfile.mkdtemp(prefix="p5_perm_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_perm_"))
     items = plan(src, "type")  # empty -> 0 items
     r = move_items(items)
     _assert(r.moved == 0 and r.failed == 0, "empty plan -> 0 moved, no crash")
-    # Simulate a failing move: target on a non-existent drive letter style path.
+    # Simulate a failing move using a target whose PARENT is an existing file.
+    # move_items() calls os.makedirs(target.parent) BEFORE checking the source,
+    # so this fails deterministically with a path-creation error and creates
+    # nothing. (The previous hard-coded "Z:\\__no_such__\\nope.jpg" could create
+    # a real directory on the root of a mapped Z: drive on other machines.)
+    blocker = Path(_TMP_HOME) / "not_a_dir.txt"
+    blocker.write_bytes(b"x")
     bad = [type("It", (), {"source": Path(src / "nope.jpg"),
-                           "target": Path("Z:\\__no_such__\\nope.jpg"),
+                           "target": blocker / "nope.jpg",
                            "category": "图片"})()]
     rb = move_items(bad)
-    _assert(rb.failed == 1, "unreachable target recorded as failure (no crash)")
+    _assert(rb.failed == 1, "unusable target recorded as failure (no crash)")
+    err_type = rb.failed_details[0]["error_type"]
+    _assert(
+        err_type in ("FileExistsError", "NotADirectoryError"),
+        f"failure is the expected path-creation error (got {err_type})",
+    )
+    _assert(blocker.is_file(), "sandbox blocker still a file (no directory created)")
+    _assert(not (blocker / "nope.jpg").exists(), "nothing created outside the sandbox")
 
 
 # --------------------------------------------------------------------------- #
@@ -299,7 +363,7 @@ def t11_permission_error():
 # --------------------------------------------------------------------------- #
 def t12_db_persist():
     print("[测试十二] 数据库持久化")
-    src = Path(tempfile.mkdtemp(prefix="p5_persist_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_persist_"))
     for n in ["a.jpg", "b.pdf"]:
         _touch(src / n)
     hid, r = _organize_flow(src, "type")
@@ -320,7 +384,7 @@ def t13_repeat_launch():
     # init_db is idempotent.
     database.init_db()
     database.init_db()
-    src = Path(tempfile.mkdtemp(prefix="p5_repeat_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_repeat_"))
     for n in ["a.jpg", "b.jpg"]:
         _touch(src / n)
     hid, r = _organize_flow(src, "type")
@@ -341,7 +405,7 @@ def t13_repeat_launch():
 def t14_empty_dir():
     print("[测试十四] 空目录")
     from core import scan
-    src = Path(tempfile.mkdtemp(prefix="p5_empty_"))
+    src = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_empty_"))
     res = scan(src, mode="type")
     _assert(res.total == 0, "empty dir -> 0 files")
     r = organize(src, "type")
@@ -354,14 +418,14 @@ def t14_empty_dir():
 def t15_cancel_flow():
     print("[测试十五] 取消 / 异常流程")
     # Organizing a non-existent root must NOT move anything (no silent move).
-    bad_root = Path(tempfile.gettempdir()) / "p5_does_not_exist_xyz"
+    bad_root = Path(_TMP_HOME) / "p5_does_not_exist_xyz"
     r = organize(bad_root, "type")
     _assert(r.moved == 0 and r.failed == 0, "organize on missing path -> 0 moves (no silent move)")
     # Plan on missing path yields nothing to act on (no move without scan).
     items = plan(bad_root, "type")
     _assert(items == [], "plan on missing path -> empty (no move without scan)")
     # Organizing an empty dir yields 0 moves (cancel-equivalent safe behavior).
-    empty = Path(tempfile.mkdtemp(prefix="p5_cancel_empty_"))
+    empty = Path(tempfile.mkdtemp(dir=_TMP_HOME, prefix="p5_cancel_empty_"))
     r2 = organize(empty, "type")
     _assert(r2.moved == 0, "organize empty dir -> 0 moves")
 
@@ -383,11 +447,15 @@ def main():
     t13_repeat_launch()
     t14_empty_dir()
     t15_cancel_flow()
-    print("\nALL PHASE-5 E2E SCENARIOS PASSED (real core modules + real filesystem)")
+    # No final "PASSED" banner here: _summary() is the single source of truth
+    # and reports PASSED / SKIPPED / FAILED separately.
 
 
 if __name__ == "__main__":
+    _completed = False
     try:
         main()
+        _completed = True
     finally:
-        shutil.rmtree(_TMP_HOME, ignore_errors=True)
+        _summary(_completed)
+        cleanup_home(_TMP_HOME)
