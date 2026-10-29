@@ -1,13 +1,15 @@
 {
   "schema_version": 1,
   "product": "DesktopCleaner",
-  "latest_version": "1.2.0",
+  "latest_version": "1.2.1",
   "minimum_supported_version": "1.1.1",
   "release_channel": "stable",
-  "download_url": "https://update.ycqinnan.cn/releases/DesktopCleaner-1.2.0.exe",
-  "sha256": "cc6c10d4c0217f18d220f961059a710fa8a30ec2f1c583ac5ce60d05d9ced047",
+  "download_url": "https://update.ycqinnan.cn/releases/DesktopCleaner-1.2.1.exe",
+  "sha256": "be98914a286c703cec9f288f74182e0169461ad63518003ddd3cbcdd354c7a8d",
   "release_notes": [
-    "V1.2-A 四大新功能：空文件夹清理、文件夹分析、导出报告、自定义规则；新增大文件页；扫描性能大幅提升；整理可靠性修复（同名文件不再分配同一目标）；安装包瘦身 8.2 MiB（剔除未使用的 Qt QML 栈）。"
+    "界面重构：全新 Glass 主题（钢蓝渐变 + 青品红点缀）、无边框窗口与自绘窗口按钮、顶栏精简；全部图标改为矢量线条绘制，不再依赖系统 emoji 字体。",
+    "功能上线：大文件分析、空文件夹清理、文件夹分析正式可用；大文件页支持自定义分类规则。",
+    "稳定性修复：更新检查并发与离线误报、撤销并发冲突与撤销后统计归零、整理时同名文件被静默覆盖、数据库连接泄漏、日志文件无限增长。"
   ],
-  "published_at": "2026-10-09"
+  "published_at": "2026-10-29"
 }
