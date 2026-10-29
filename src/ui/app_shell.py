@@ -10,7 +10,6 @@ from __future__ import annotations
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
-    QLabel,
     QPushButton,
     QStackedWidget,
     QVBoxLayout,
@@ -37,19 +36,6 @@ from ui.theme_manager import ThemeManager
 from ui.welcome import WelcomeDialog, should_show_welcome
 from ui.widgets.sidebar import Sidebar
 from version import __version__
-
-_TITLES = {
-    "home": "首页",
-    "organize": "整理",
-    "large": "大文件分析",
-    "analysis": "文件夹分析",
-    "empty": "空文件夹清理",
-    "custom": "整理方案",
-    "history": "整理历史",
-    "settings": "设置",
-    "rules": "自定义规则",
-}
-
 
 class AppShell(FramelessWindow):
     def __init__(self):
@@ -126,11 +112,8 @@ class AppShell(FramelessWindow):
         bar = QWidget()
         bar.setObjectName("topbar")
         lay = QHBoxLayout(bar)
-        lay.setContentsMargins(28, 14, 14, 14)
+        lay.setContentsMargins(20, 10, 12, 10)
         lay.setSpacing(8)
-        self._title = QLabel("整理")
-        self._title.setObjectName("page-title")
-        lay.addWidget(self._title)
         lay.addStretch(1)
 
         self.theme_btn = QPushButton()
@@ -196,7 +179,6 @@ class AppShell(FramelessWindow):
             return
         self.stack.setCurrentWidget(page)
         self.sidebar.set_active(pid)
-        self._title.setText(_TITLES.get(pid, pid))
         enter = getattr(page, "on_enter", None)
         if callable(enter):
             enter()

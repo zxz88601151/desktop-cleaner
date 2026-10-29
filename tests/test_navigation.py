@@ -142,12 +142,9 @@ def test_default_landing_is_fixed():
 
 def test_every_page_nav_entry_is_registered_and_routable():
     shell = _shell()
-    from ui.app_shell import _TITLES
-
     ids = _page_nav_ids(shell)
     assert set(REQUIRED_NAV) <= set(ids), f"missing page-backed nav: {REQUIRED_NAV}"
     for pid in ids:
-        assert pid in _TITLES, f"nav {pid!r} has no title"
         shell._route(pid)
         assert shell.stack.currentWidget() is shell._pages[pid], (
             f"routing to {pid!r} did not select its page"
